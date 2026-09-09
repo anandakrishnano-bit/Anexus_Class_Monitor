@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Anexus Pro Geometric Layered Emblem -->
+    <!-- Top Layer -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,28 L78,42 L54,56 L30,42 Z" />
+    <!-- Middle Layer -->
+    <path
+        android:fillColor="#D4D4D4"
+        android:pathData="M30,49 L54,63 L78,49 L78,55 L54,69 L30,55 Z" />
+    <!-- Bottom Layer -->
+    <path
+        android:fillColor="#8A8A8E"
+        android:pathData="M30,62 L54,76 L78,62 L78,68 L54,82 L30,68 Z" />
+</vector>

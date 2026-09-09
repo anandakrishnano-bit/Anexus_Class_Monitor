@@ -1,0 +1,21 @@
+{
+  "appId": "com.anexus.classmanager",
+  "appName": "Anexus Class Manager",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "StatusBar": {
+      "overlaysWebView": false,
+      "style": "DARK",
+      "backgroundColor": "#0A0A0A"
+    },
+    "SplashScreen": {
+      "launchShowDuration": 0,
+      "launchAutoHide": true,
+      "backgroundColor": "#0A0A0A",
+      "showSpinner": false
+    }
+  }
+}

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Anexus Class Manager</string>
+    <string name="title_activity_main">Anexus Class Manager</string>
+    <string name="package_name">com.anexus.classmanager</string>
+    <string name="custom_url_scheme">com.anexus.classmanager</string>
+</resources>
