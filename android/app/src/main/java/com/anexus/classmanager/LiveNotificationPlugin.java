@@ -47,6 +47,7 @@ public class LiveNotificationPlugin extends Plugin {
     private static final int NOTIFICATION_ID = 1016;
 
     private boolean isChannelCreated = false;
+    private boolean hasCreatedIsland = false;
 
     // Active session parameters for native background ticker
     private ScheduledExecutorService tickerService;
@@ -363,8 +364,9 @@ public class LiveNotificationPlugin extends Plugin {
                 periodNumber,
                 startTimeMillis,
                 endTimeMillis,
-                hasCreatedIsland
+                false
             );
+            hasCreatedIsland = true;
 
             // If this is an active class session with valid future end time, initialize native background ticker
             if (isOngoing && startTimeMillis > 0 && endTimeMillis > System.currentTimeMillis()) {

@@ -19,9 +19,9 @@ android {
     signingConfigs {
         release {
             storeFile file('release.keystore')
-            storePassword 'anexus2026'
-            keyAlias 'anexus-key'
-            keyPassword 'anexus2026'
+            storePassword System.getenv('KEYSTORE_PASSWORD') ?: 'anexus2026'
+            keyAlias System.getenv('KEY_ALIAS') ?: 'anexus-key'
+            keyPassword System.getenv('KEY_PASSWORD') ?: 'anexus2026'
             v1SigningEnabled true
             v2SigningEnabled true
         }
