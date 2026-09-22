@@ -1,0 +1,16 @@
+{
+  "short_name": "Class Manager",
+  "name": "Anexus Class Manager",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0A0A0A",
+  "theme_color": "#0A0A0A",
+  "display": "standalone",
+  "orientation": "portrait"
+}
