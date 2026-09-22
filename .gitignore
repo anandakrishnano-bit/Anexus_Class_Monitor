@@ -50,3 +50,16 @@ local.properties
 *.bak
 Screenshot_*/
 *.ps1
+release-apk/
+
+# Admin console & internal utilities
+admin.html
+public/admin.html
+*admin*.html
+
+# AI & IDE agent directories
+.agents/
+.claude/
+.gemini/
+.jolli/
+.mcp.json

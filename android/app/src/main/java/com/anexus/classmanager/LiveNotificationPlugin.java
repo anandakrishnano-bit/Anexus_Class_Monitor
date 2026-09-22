@@ -1,6 +1,7 @@
 package com.anexus.classmanager;
 
 import android.Manifest;
+import android.app.AlarmManager;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -92,6 +93,52 @@ public class LiveNotificationPlugin extends Plugin {
         }
     }
 
+    private PendingIntent sessionEndAlarmIntent;
+
+    private void scheduleExactSessionEndAlarm(long endTimeMillis) {
+        cancelExactSessionEndAlarm();
+        Context context = getContext();
+        if (context == null || endTimeMillis <= System.currentTimeMillis()) return;
+
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        if (alarmManager == null) return;
+
+        Intent intent = new Intent(context, SessionEndReceiver.class);
+        intent.setAction(SessionEndReceiver.ACTION_SESSION_ENDED);
+        intent.putExtra("periodNumber", sessionPeriodNumber);
+        intent.putExtra("subjectName", sessionSubName);
+        intent.putExtra("colorInt", sessionColorInt);
+
+        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            flags |= PendingIntent.FLAG_IMMUTABLE;
+        }
+
+        sessionEndAlarmIntent = PendingIntent.getBroadcast(context, 1017, intent, flags);
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, endTimeMillis, sessionEndAlarmIntent);
+            } else {
+                alarmManager.setExact(AlarmManager.RTC_WAKEUP, endTimeMillis, sessionEndAlarmIntent);
+            }
+        } catch (Exception e) {
+            try {
+                alarmManager.set(AlarmManager.RTC_WAKEUP, endTimeMillis, sessionEndAlarmIntent);
+            } catch (Exception ignored) {}
+        }
+    }
+
+    private void cancelExactSessionEndAlarm() {
+        if (sessionEndAlarmIntent != null && getContext() != null) {
+            AlarmManager alarmManager = (AlarmManager) getContext().getSystemService(Context.ALARM_SERVICE);
+            if (alarmManager != null) {
+                alarmManager.cancel(sessionEndAlarmIntent);
+            }
+            sessionEndAlarmIntent = null;
+        }
+    }
+
     private synchronized void startNativeBackgroundTicker() {
         stopNativeBackgroundTicker();
 
@@ -99,11 +146,15 @@ public class LiveNotificationPlugin extends Plugin {
             return;
         }
 
+        // Schedule exact hardware wake alarm so the phone can remain in deep sleep (Doze)
+        // until the exact second the period completes
+        scheduleExactSessionEndAlarm(sessionEndTime);
+
         if (tickerService == null || tickerService.isShutdown()) {
             tickerService = Executors.newSingleThreadScheduledExecutor();
         }
 
-        // Run every 20 seconds to recalculate and refresh progress and Vivo Origin Island
+        // Run every 10 minutes to refresh progress and Vivo Origin Island with minimal battery/CPU drain
         tickerFuture = tickerService.scheduleWithFixedDelay(new Runnable() {
             @Override
             public void run() {
@@ -114,6 +165,15 @@ public class LiveNotificationPlugin extends Plugin {
                         stopNativeBackgroundTicker();
                         showCompletedNotification();
                         return;
+                    }
+
+                    // Power efficiency: If screen is off (phone in pocket), do not wake CPU to redraw views
+                    Context context = getContext();
+                    if (context != null) {
+                        PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+                        if (pm != null && !pm.isInteractive()) {
+                            return;
+                        }
                     }
 
                     long elapsed = now - sessionStartTime;
@@ -144,7 +204,7 @@ public class LiveNotificationPlugin extends Plugin {
                     );
                 } catch (Exception ignored) {}
             }
-        }, 20, 20, TimeUnit.SECONDS);
+        }, 10, 10, TimeUnit.MINUTES);
     }
 
     private synchronized void stopNativeBackgroundTicker() {
@@ -152,49 +212,18 @@ public class LiveNotificationPlugin extends Plugin {
             tickerFuture.cancel(true);
             tickerFuture = null;
         }
+        if (tickerService != null && !tickerService.isShutdown()) {
+            tickerService.shutdown();
+            tickerService = null;
+        }
+        cancelExactSessionEndAlarm();
     }
 
     private void showCompletedNotification() {
         Context context = getContext();
         if (context == null) return;
-
-        try {
-            createNotificationChannel();
-            String title = "Period " + sessionPeriodNumber + " Ended";
-            String message = sessionSubName + " has finished. Mark your attendance!";
-
-            Intent intent = new Intent(context, MainActivity.class);
-            intent.setAction(Intent.ACTION_VIEW);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            intent.putExtra("navigateTab", "attendance");
-            intent.putExtra("periodNumber", sessionPeriodNumber);
-
-            PendingIntent pendingIntent = PendingIntent.getActivity(
-                context,
-                101,
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? PendingIntent.FLAG_IMMUTABLE : 0)
-            );
-
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_notification)
-                .setContentTitle(title)
-                .setContentText(message)
-                .setColor(sessionColorInt)
-                .setOngoing(false)
-                .setAutoCancel(true)
-                .setContentIntent(pendingIntent)
-                .addAction(R.drawable.ic_attendance, "Mark Attendance", pendingIntent);
-
-            // Vivo Origin Island end operation
-            Bundle extras = new Bundle();
-            extras.putInt("notification.superx.operation", 2); // 2 = finish / end
-            builder.addExtras(extras);
-
-            NotificationManagerCompat manager = NotificationManagerCompat.from(context);
-            manager.notify(NOTIFICATION_ID, builder.build());
-            hasCreatedIsland = false;
-        } catch (Exception ignored) {}
+        SessionEndReceiver.triggerCompletionAlert(context, sessionPeriodNumber, sessionSubName, sessionColorInt);
+        hasCreatedIsland = false;
     }
 
     private void postNotification(

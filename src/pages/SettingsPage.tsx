@@ -2513,7 +2513,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenWalkthrough, o
               Unified Cloud Synchronization &amp; Master Admin Portal
             </div>
             <p className="text-neutral-600 dark:text-neutral-400 leading-relaxed">
-              Data is safely backed up to Google Cloud Firestore, partitioned by User ID and Class Code. Institutional administrators can access <code className="font-mono text-neutral-800 dark:text-neutral-200">admin.html</code> on PC to monitor registered classrooms, inspect offline backup JSONs, export global student rosters, push 24h notices, or execute authorized cloud database maintenance.
+              Data is safely backed up to Google Cloud Firestore, partitioned by User ID and Class Code. Institutional administrators can access the built-in Master Admin console to monitor registered classrooms, inspect offline backup JSONs, export global student rosters, push 24h notices, or execute authorized cloud database maintenance.
             </p>
           </div>
 
@@ -3007,31 +3007,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenWalkthrough, o
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isLoadingAdminData ? 'animate-spin' : ''}`} />
                 Refresh Cloud Data
-              </Button>
-
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={async () => {
-                  try {
-                    const token = await createAdminSessionToken(5);
-                    if (token) {
-                      const tokenStr = JSON.stringify(token);
-                      localStorage.setItem('__adm_t', tokenStr);
-                      sessionStorage.setItem('__adm_t', tokenStr);
-                      window.open(`/admin.html#auth=${encodeURIComponent(tokenStr)}`, '_blank');
-                      return;
-                    }
-                  } catch (err) {
-                    console.warn('Failed to pass token to admin portal', err);
-                  }
-                  window.open('/admin.html', '_blank');
-                }}
-                className="gap-1.5 font-bold text-blue-600 dark:text-blue-400 border-blue-500/30 hover:bg-blue-50 dark:hover:bg-blue-950/30"
-              >
-                <Monitor className="w-3.5 h-3.5" />
-                Launch PC Portal
               </Button>
             </div>
 

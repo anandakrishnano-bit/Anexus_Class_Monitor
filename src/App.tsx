@@ -105,25 +105,52 @@ export const AppContent: React.FC = () => {
       showToast('Nightly Backup Done', `Class synced to cloud at ${format(new Date(ts), 'HH:mm')}`, 'info');
     }).catch(() => {});
 
-    const interval = setInterval(() => {
-      checkAndTriggerUpcomingAlerts(todaySchedules, periodConfigs, pendingTasks, showToast);
-      syncLiveAndroidNotification(schedules, periodConfigs, subjects, currentSettings);
-      checkAndPerformNightlySync(ts => {
-        showToast('Nightly Backup Done', `Class synced to cloud at ${format(new Date(ts), 'HH:mm')}`, 'info');
-      }).catch(() => {});
-    }, 15000);
+    let foregroundInterval: any = null;
+
+    const startForegroundInterval = () => {
+      if (foregroundInterval) clearInterval(foregroundInterval);
+      foregroundInterval = setInterval(() => {
+        if (document.visibilityState === 'visible') {
+          checkAndTriggerUpcomingAlerts(todaySchedules, periodConfigs, pendingTasks, showToast);
+          syncLiveAndroidNotification(schedules, periodConfigs, subjects, currentSettings);
+          checkAndPerformNightlySync(ts => {
+            showToast('Nightly Backup Done', `Class synced to cloud at ${format(new Date(ts), 'HH:mm')}`, 'info');
+          }).catch(() => {});
+        }
+      }, 15000);
+    };
+
+    const stopForegroundInterval = () => {
+      if (foregroundInterval) {
+        clearInterval(foregroundInterval);
+        foregroundInterval = null;
+      }
+    };
+
+    if (document.visibilityState === 'visible') {
+      startForegroundInterval();
+    }
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         checkAndTriggerUpcomingAlerts(todaySchedules, periodConfigs, pendingTasks, showToast);
         syncLiveAndroidNotification(schedules, periodConfigs, subjects, currentSettings);
+        startForegroundInterval();
+      } else {
+        // Halt JS background polling completely to achieve 0% CPU, 0% GPU and minimal battery/RAM usage
+        stopForegroundInterval();
       }
     };
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleVisibilityChange);
+    window.addEventListener('blur', handleVisibilityChange);
 
     return () => {
-      clearInterval(interval);
+      stopForegroundInterval();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleVisibilityChange);
+      window.removeEventListener('blur', handleVisibilityChange);
     };
   }, [schedules, periodConfigs, subjects, tasks, currentSettings, showToast]);
 

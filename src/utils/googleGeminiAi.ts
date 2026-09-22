@@ -4,6 +4,8 @@
  */
 
 export const GEMINI_MODELS = [
+  { id: 'gemini-3.6-flash', name: 'Gemini 3.6 Flash (Fast & Recommended)' },
+  { id: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash (Deep Reasoning & High Performance)' },
   { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash (Fast & Ultra Responsive)' },
   { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash (General Purpose)' },
   { id: 'gemini-1.5-flash-latest', name: 'Gemini 1.5 Flash Latest (Auto Updated)' },
@@ -61,10 +63,20 @@ export async function getOrDiscoverModels(apiKey: string): Promise<{ version: 'v
  * Normalizes model IDs to supported Google Gemini models
  */
 export function normalizeGeminiModel(model?: string): string {
-  if (!model) return 'gemini-2.0-flash';
+  if (!model || !model.trim()) return 'gemini-3.6-flash';
   const clean = model.trim().replace(/^models\//, '');
-  if (clean.includes('3.6') || clean.includes('3.8') || clean.includes('3.5')) {
-    return 'gemini-2.0-flash';
+  if (
+    clean === 'gemini-2.0-flash' ||
+    clean === 'gemini-2.0-flash-exp' ||
+    clean === 'gemini-2.0-flash-preview'
+  ) {
+    return 'gemini-3.6-flash';
+  }
+  if (
+    clean === 'gemini-2.0-pro' ||
+    clean === 'gemini-2.0-pro-exp'
+  ) {
+    return 'gemini-3.8-flash';
   }
   return clean;
 }
@@ -102,6 +114,8 @@ export async function testGeminiApiKey(
     // Fallback if ListModels endpoint is restricted
     candidateModels = [
       model.trim().replace(/^models\//, ''),
+      'gemini-3.6-flash',
+      'gemini-3.8-flash',
       'gemini-2.0-flash',
       'gemini-1.5-flash-latest',
       'gemini-1.5-flash',

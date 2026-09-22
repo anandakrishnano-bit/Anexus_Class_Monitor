@@ -20,13 +20,16 @@ export interface CentralFirebaseConfig {
 
 const env = (import.meta as any).env || {};
 
+// Runtime config keys written by the first-launch setup wizard (WelcomeSetup)
+const _ls = (key: string) => { try { return localStorage.getItem(key) || ''; } catch { return ''; } };
+
 export const CENTRAL_FIREBASE_CONFIG: CentralFirebaseConfig = {
-  apiKey: env.VITE_FIREBASE_API_KEY || '',
-  authDomain: env.VITE_FIREBASE_AUTH_DOMAIN || '',
-  projectId: env.VITE_FIREBASE_PROJECT_ID || '',
-  storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET || '',
-  messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
-  appId: env.VITE_FIREBASE_APP_ID || ''
+  get apiKey() { return _ls('__rt_firebase_api_key') || env.VITE_FIREBASE_API_KEY || ''; },
+  get authDomain() { return _ls('__rt_firebase_auth_domain') || env.VITE_FIREBASE_AUTH_DOMAIN || ''; },
+  get projectId() { return _ls('__rt_firebase_project_id') || env.VITE_FIREBASE_PROJECT_ID || ''; },
+  get storageBucket() { return _ls('__rt_firebase_storage_bucket') || env.VITE_FIREBASE_STORAGE_BUCKET || ''; },
+  get messagingSenderId() { return _ls('__rt_firebase_sender_id') || env.VITE_FIREBASE_MESSAGING_SENDER_ID || ''; },
+  get appId() { return _ls('__rt_firebase_app_id') || env.VITE_FIREBASE_APP_ID || ''; },
 };
 
 // Standard SHA-256 hashes of default administrative passkeys

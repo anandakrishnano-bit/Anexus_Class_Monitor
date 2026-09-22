@@ -39,11 +39,17 @@ Core features operate 100% offline using client-side IndexedDB persistence, with
 - Detailed inspection modal for past attendance sessions (student rosters, absentee breakdowns, and timestamps).
 - Print-optimized summary view for hard-copy submission.
 
-### 5. Master Administrative Console
-- Standalone protected console accessible via `/admin.html`.
+### 5. In-App Administrative Diagnostics & Cloud Console
+- Secure admin mode directly within the Settings portal, protected by SHA-256 passkey verification.
 - Storage quota and disk space diagnostics powered by `navigator.storage.estimate()`.
-- Detailed object store inspection across all local IndexedDB tables.
-- Cryptographically signed HMAC session validation with automatic timeout security.
+- Real-time cloud collection inspector (Users & Classrooms) with selective record management.
+- Cryptographically signed HMAC session validation with automatic 5-minute timeout security.
+
+### 6. Battery-Efficient Background Engine & Hardware Alarms
+- Android OS `RTC_WAKEUP` exact alarm scheduling via `SessionEndReceiver`: wakes only when a period ends, allowing the device to remain in deep sleep (Doze) during class.
+- Smart foreground execution: halts polling threads when app is blurred or in the background for 0% CPU and GPU drain.
+- In-app Firebase onboarding setup wizard: configure cloud sync securely at runtime without hardcoded keys.
+- Next-Gen Google Gemini AI integration: support for Gemini 3.6 Flash and Gemini 3.8 Flash models.
 
 ---
 
@@ -56,6 +62,7 @@ Core features operate 100% offline using client-side IndexedDB persistence, with
 | **Styling & UI** | Tailwind CSS, Lucide Icons, Radix UI Primitives |
 | **Mobile Runtime** | Capacitor Android Native Shell |
 | **Cloud Layer (Optional)** | Firebase Cloud Firestore (REST API) |
+| **AI Assistants** | Google Gemini API (v1beta/v1), Web-LLM Local Models |
 | **Analytics & Data** | Recharts, SheetJS (XLSX) |
 
 ---
@@ -65,14 +72,14 @@ Core features operate 100% offline using client-side IndexedDB persistence, with
 ### Prerequisites
 - Node.js (v18.x or higher)
 - npm (v9.x or higher)
-- Android Studio (optional, for Android APK builds)
+- Android Studio / Android SDK (optional, for Android APK builds)
 
 ### Installation
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/anandakrishnano-bit/class-monitoring.git
-   cd class-monitoring
+   git clone https://github.com/anandakrishnano-bit/Anexus_Class_Monitor.git
+   cd Anexus_Class_Monitor
    ```
 
 2. Install dependencies:
@@ -84,7 +91,7 @@ Core features operate 100% offline using client-side IndexedDB persistence, with
    ```bash
    cp .env.example .env
    ```
-   *Note: Cloud synchronization is optional. If left unconfigured, the application runs entirely locally via IndexedDB.*
+   *Note: Cloud synchronization is optional. If left unconfigured, the application runs entirely locally via IndexedDB or can be configured directly inside the first-launch setup wizard.*
 
 4. Launch development server:
    ```bash
@@ -92,8 +99,6 @@ Core features operate 100% offline using client-side IndexedDB persistence, with
    ```
 
 5. Access the application in your browser at `http://localhost:5173`.
-   - Main Student App: `http://localhost:5173/`
-   - Administrative Console: `http://localhost:5173/admin.html`
 
 ---
 
