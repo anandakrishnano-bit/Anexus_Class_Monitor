@@ -214,8 +214,8 @@ async function deliverEmail(item: PendingEmailDispatch, settings?: AppSettings):
         to: item.recipients,
         subject: item.subject,
         html: `
-          <h2>Academic Attendance Session Report</h2>
-          <p>Attached is the verified attendance audit sheet (.xlsx) for:</p>
+          <h2>Class Attendance Report</h2>
+          <p>Attached is the attendance sheet (.xlsx) for:</p>
           <ul>
             <li><strong>Date:</strong> ${item.sessionSummary.date}</li>
             <li><strong>Period:</strong> Period ${item.sessionSummary.period}</li>
@@ -224,12 +224,12 @@ async function deliverEmail(item: PendingEmailDispatch, settings?: AppSettings):
             <li><strong>Present:</strong> ${item.sessionSummary.presentCount} / ${item.sessionSummary.totalCount} (${item.sessionSummary.attendanceRate}%)</li>
             <li><strong>Absent:</strong> ${item.sessionSummary.absentCount}</li>
           </ul>
-          <h3>Absentees Roster:</h3>
+          <h3>Absentees:</h3>
           ${item.absentList.length > 0
             ? '<ol>' + item.absentList.map(a => `<li><strong>${a.registerNo}</strong>: ${a.name}${a.remarks ? ` (${a.remarks})` : ''}</li>`).join('') + '</ol>'
             : '<p><em>All students present (100% attendance).</em></p>'
           }
-          <p style="font-size: 11px; color: #888;">Generated automatically by Anexus Class Monitor.</p>
+          <p style="font-size: 11px; color: #888;">Sent from Anexus Class Manager.</p>
         `,
         attachments: [
           {

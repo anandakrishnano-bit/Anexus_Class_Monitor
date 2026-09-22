@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { Student, AttendanceRecord, AttendanceSession, Subject, AttendanceStatus } from '../types';
+import { Student, AttendanceSession, Subject, AttendanceStatus } from '../types';
 
 export interface SingleSessionExcelData {
   date: string;
@@ -19,9 +19,17 @@ export interface SingleSessionExcelData {
   }>;
 }
 
+function formatStatus(status: string): string {
+  const s = status.toLowerCase();
+  if (s === 'present') return 'Present';
+  if (s === 'absent') return 'Absent';
+  if (s === 'od') return 'On Duty';
+  if (s === 'medical') return 'Medical';
+  return status.charAt(0).toUpperCase() + status.slice(1);
+}
+
 /**
- * Creates an executive, highly readable, structured, and tabulated Excel workbook
- * for a single class attendance session.
+ * Creates a clean, standard, uncluttered Excel workbook for a single class session.
  */
 export function buildStructuredSessionWorkbook(data: SingleSessionExcelData): XLSX.WorkBook {
   const total = data.records.length;
@@ -30,64 +38,71 @@ export function buildStructuredSessionWorkbook(data: SingleSessionExcelData): XL
   const odCount = data.records.filter(r => r.status === 'od').length;
   const attendanceRate = total > 0 ? ((presentCount / total) * 100).toFixed(1) : '0.0';
 
-  // Construct tabular rows
+  const subjectDisplay = data.subjectName
+    ? `${data.subjectCode} - ${data.subjectName}`
+    : data.subjectCode;
+
+  const classDisplay = [data.className, data.section].filter(Boolean).join(' - ') || 'General';
+
+  // Clean, uncluttered layout
   const wsData: any[][] = [
-    ['ANEXUS CLASS MONITOR — ATTENDANCE AUDIT SHEET'],
+    ['Class Attendance Report'],
     [],
-    ['SESSION DETAILS', '', 'ATTENDANCE SUMMARY KPI', ''],
-    ['Date', data.date, 'Total Enrolled', total],
-    ['Period', `Period ${data.periodNumber}`, 'Present', `${presentCount} (${attendanceRate}%)`],
-    ['Subject Code', data.subjectCode, 'Absent', absentCount],
-    ['Subject Name', data.subjectName || data.subjectCode, 'On Duty (OD)', odCount],
-    ['Faculty', data.facultyName || 'Course Faculty', 'Status', Number(attendanceRate) >= 75 ? 'ELIGIBLE (>=75%)' : 'DEFICIT (<75%)'],
-    ['Class / Section', `${data.className || 'Class'} - ${data.section || 'A'}${data.department ? ` (${data.department})` : ''}`, 'Generated At', new Date().toLocaleString()],
-    [],
-    ['--- STUDENT ROSTER & ATTENDANCE RECORDS ---'],
-    ['S.No', 'Register Number', 'Student Name', 'Status', 'Visual Indicator', 'Remarks']
+    ['Date', data.date],
+    ['Period', `Period ${data.periodNumber}`],
+    ['Subject', subjectDisplay],
+    ['Faculty', data.facultyName || 'Course Faculty'],
+    ['Class', classDisplay],
+    ['Total Students', total],
+    ['Present', `${presentCount} (${attendanceRate}%)`],
+    ['Absent', absentCount]
   ];
 
+  if (odCount > 0) {
+    wsData.push(['On Duty', odCount]);
+  }
+
+  wsData.push([]);
+  const headerRowIndex = wsData.length + 1; // 1-based index in Excel
+
+  wsData.push(['S.No', 'Register Number', 'Student Name', 'Status', 'Remarks']);
+
   data.records.forEach((rec, idx) => {
-    const statusUpper = rec.status.toUpperCase();
-    const visual = rec.status === 'present'
-      ? '🟢 PRESENT'
-      : rec.status === 'absent'
-      ? '🔴 ABSENT'
-      : rec.status === 'od'
-      ? '🟡 ON DUTY'
-      : rec.status === 'medical'
-      ? '🏥 MEDICAL'
-      : '🔵 ' + statusUpper;
     wsData.push([
       idx + 1,
       rec.registerNo,
       rec.name,
-      statusUpper,
-      visual,
-      rec.remarks || (rec.status === 'absent' ? 'Absent from lecture' : '-')
+      formatStatus(rec.status),
+      rec.remarks || ''
     ]);
   });
 
   const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-  // Define generous column widths for crystal-clear readability
+  // Set clean, readable column widths
   ws['!cols'] = [
     { wch: 8 },  // S.No
     { wch: 20 }, // Register Number
     { wch: 30 }, // Student Name
     { wch: 14 }, // Status
-    { wch: 18 }, // Visual Indicator
-    { wch: 35 }  // Remarks
+    { wch: 25 }  // Remarks
   ];
 
+  // Add Excel auto-filter on table headers
+  const lastRow = wsData.length;
+  ws['!autofilter'] = {
+    ref: `A${headerRowIndex}:E${lastRow}`
+  };
+
   const wb = XLSX.utils.book_new();
-  const safeSheetName = `P${data.periodNumber}_${data.subjectCode}`.substring(0, 31).replace(/[\\/?*[\]]/g, '_');
+  const safeSheetName = `Period ${data.periodNumber}`.substring(0, 31).replace(/[\\/?*[\]]/g, '_');
   XLSX.utils.book_append_sheet(wb, ws, safeSheetName);
 
   return wb;
 }
 
 /**
- * Creates an executive, multi-sheet workbook for complete classroom reporting
+ * Creates a clean, standard, multi-sheet workbook for full semester reporting.
  */
 export function buildStructuredCompleteWorkbook(
   students: Student[],
@@ -97,30 +112,29 @@ export function buildStructuredCompleteWorkbook(
 ): XLSX.WorkBook {
   const wb = XLSX.utils.book_new();
 
-  // 1. SUMMARY SHEET
+  // 1. OVERVIEW SHEET
   const totalSessions = sessions.length;
   const totalStudents = students.length;
+  const classDisplay = [meta.className, meta.section].filter(Boolean).join(' - ') || 'General';
 
   const summaryData: any[][] = [
-    ['ANEXUS CLASS MONITOR — COMPREHENSIVE ACADEMIC AUDIT'],
+    ['Class Attendance Overview'],
     [],
-    ['METRIC', 'VALUE'],
-    ['Academic Class', `${meta.className || 'General'} - ${meta.section || 'Section'}`],
-    ['Department', meta.department || 'N/A'],
-    ['Total Registered Students', totalStudents],
+    ['Class', classDisplay],
+    ['Department', meta.department || '-'],
+    ['Total Students', totalStudents],
     ['Total Recorded Sessions', totalSessions],
-    ['Report Generated Date', new Date().toLocaleDateString()],
-    ['Report Generated Time', new Date().toLocaleTimeString()],
-    []
+    ['Generated Date', new Date().toLocaleDateString()],
+    ['Generated Time', new Date().toLocaleTimeString()]
   ];
 
   const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
-  summaryWs['!cols'] = [{ wch: 28 }, { wch: 35 }];
+  summaryWs['!cols'] = [{ wch: 24 }, { wch: 30 }];
   XLSX.utils.book_append_sheet(wb, summaryWs, 'Overview');
 
   // 2. STUDENT CUMULATIVE ATTENDANCE SHEET
   const studentData: any[][] = [
-    ['S.No', 'Register Number', 'Student Name', 'Total Sessions', 'Attended', 'Absent', 'OD', 'Attendance %', 'Status']
+    ['S.No', 'Register Number', 'Student Name', 'Total Classes', 'Attended', 'Absent', 'On Duty', 'Attendance %']
   ];
 
   students.forEach((st, idx) => {
@@ -140,7 +154,6 @@ export function buildStructuredCompleteWorkbook(
     const studentTotal = attended + absent + od;
     const effectiveTotal = studentTotal > 0 ? studentTotal : totalSessions;
     const pct = effectiveTotal > 0 ? ((attended / effectiveTotal) * 100).toFixed(1) : '100.0';
-    const status = Number(pct) >= 75 ? 'ELIGIBLE' : 'SHORTAGE';
 
     studentData.push([
       idx + 1,
@@ -150,28 +163,27 @@ export function buildStructuredCompleteWorkbook(
       attended,
       absent,
       od,
-      `${pct}%`,
-      status
+      `${pct}%`
     ]);
   });
 
   const studentWs = XLSX.utils.aoa_to_sheet(studentData);
   studentWs['!cols'] = [
-    { wch: 6 },  // S.No
-    { wch: 18 }, // Register No
-    { wch: 28 }, // Name
-    { wch: 16 }, // Total
+    { wch: 8 },  // S.No
+    { wch: 20 }, // Register No
+    { wch: 30 }, // Name
+    { wch: 14 }, // Total Classes
     { wch: 12 }, // Attended
     { wch: 10 }, // Absent
-    { wch: 8 },  // OD
-    { wch: 15 }, // Attendance %
-    { wch: 14 }  // Status
+    { wch: 10 }, // On Duty
+    { wch: 14 }  // Attendance %
   ];
+  studentWs['!autofilter'] = { ref: `A1:H${studentData.length}` };
   XLSX.utils.book_append_sheet(wb, studentWs, 'Student Summary');
 
-  // 3. SESSION AUDIT LOG SHEET
+  // 3. SESSION LOGS SHEET
   const sessionData: any[][] = [
-    ['S.No', 'Date', 'Period', 'Subject Code', 'Subject Name', 'Faculty', 'Present', 'Absent', 'OD', 'Rate %']
+    ['S.No', 'Date', 'Period', 'Subject Code', 'Subject Name', 'Faculty', 'Present', 'Absent', 'On Duty', 'Attendance %']
   ];
 
   sessions.forEach((sess, idx) => {
@@ -185,10 +197,10 @@ export function buildStructuredCompleteWorkbook(
     sessionData.push([
       idx + 1,
       sess.date,
-      `P${sess.periodNumber}`,
+      `Period ${sess.periodNumber}`,
       sess.subjectCode,
       subObj?.name || sess.subjectName || sess.subjectCode,
-      sess.facultyName || 'Faculty',
+      sess.facultyName || 'Course Faculty',
       pCount,
       aCount,
       oCount,
@@ -198,17 +210,18 @@ export function buildStructuredCompleteWorkbook(
 
   const sessionWs = XLSX.utils.aoa_to_sheet(sessionData);
   sessionWs['!cols'] = [
-    { wch: 6 },
+    { wch: 8 },
     { wch: 14 },
-    { wch: 10 },
+    { wch: 12 },
     { wch: 15 },
     { wch: 28 },
     { wch: 22 },
     { wch: 10 },
     { wch: 10 },
-    { wch: 8 },
-    { wch: 12 }
+    { wch: 10 },
+    { wch: 14 }
   ];
+  sessionWs['!autofilter'] = { ref: `A1:J${sessionData.length}` };
   XLSX.utils.book_append_sheet(wb, sessionWs, 'Session Logs');
 
   return wb;
