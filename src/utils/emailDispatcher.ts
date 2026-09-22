@@ -2,7 +2,7 @@ import * as XLSX from 'xlsx';
 import { buildStructuredSessionWorkbook, SingleSessionExcelData } from './excelReportGenerator';
 import { AppSettings } from '../types';
 import { Share } from '@capacitor/share';
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, CapacitorHttp } from '@capacitor/core';
 
 export interface PendingEmailDispatch {
   id: string;
@@ -35,6 +35,69 @@ export interface PendingEmailDispatch {
 }
 
 const QUEUE_STORAGE_KEY = '__anexus_pending_email_dispatches';
+
+/**
+ * Universal POST helper that executes native HTTP on Android/iOS (bypassing CORS)
+ * and falls back to standard fetch in web/desktop browsers.
+ */
+async function universalPost(
+  url: string,
+  headers: Record<string, string>,
+  data: any
+): Promise<{ ok: boolean; status: number; data: any; rawText: string }> {
+  // If running in Capacitor Android/iOS native container, use native Http plugin
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const nativeResponse = await CapacitorHttp.post({
+        url,
+        headers: {
+          'Origin': 'https://anandakrishnano-bit.github.io',
+          'Referer': 'https://anandakrishnano-bit.github.io/Anexus_Class_Monitor/',
+          ...headers
+        },
+        data,
+        connectTimeout: 30000,
+        readTimeout: 30000
+      });
+
+      return {
+        ok: nativeResponse.status >= 200 && nativeResponse.status < 300,
+        status: nativeResponse.status,
+        data: nativeResponse.data,
+        rawText: typeof nativeResponse.data === 'string' ? nativeResponse.data : JSON.stringify(nativeResponse.data)
+      };
+    } catch (nativeErr: any) {
+      console.warn('[universalPost] Native CapacitorHttp failed, attempting web fallback:', nativeErr?.message);
+    }
+  }
+
+  // Web, Desktop (Electron), or fallback fetch
+  const res = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: typeof data === 'string' ? data : JSON.stringify(data)
+  });
+
+  let parsed: any = null;
+  let text = '';
+  try {
+    text = await res.text();
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      parsed = text;
+    }
+  } catch (e) {
+    //
+  }
+
+  return {
+    ok: res.ok,
+    status: res.status,
+    data: parsed,
+    rawText: text
+  };
+}
 
 /**
  * Returns currently queued email dispatches from localStorage
@@ -134,17 +197,20 @@ export function enqueueAttendanceEmail(
  */
 async function deliverEmail(item: PendingEmailDispatch, settings?: AppSettings): Promise<{ success: boolean; note?: string }> {
   const config = settings?.emailServiceConfig;
+  const rawKey = config?.apiKey?.trim();
 
   // Option 1: Resend API Direct Integration (Sends .xlsx attachment directly)
-  if (config?.apiKey && config.apiKey.startsWith('re_')) {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
+  // Triggered when an API key is provided
+  if (rawKey && (rawKey.startsWith('re_') || (!config?.endpoint && rawKey.length > 5))) {
+    const fromAddress = config?.fromEmail?.trim() || 'Anexus Attendance <onboarding@resend.dev>';
+    const res = await universalPost(
+      'https://api.resend.com/emails',
+      {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.apiKey}`
+        'Authorization': `Bearer ${rawKey}`
       },
-      body: JSON.stringify({
-        from: config.fromEmail || 'Anexus Attendance <onboarding@resend.dev>',
+      {
+        from: fromAddress,
         to: item.recipients,
         subject: item.subject,
         html: `
@@ -171,14 +237,14 @@ async function deliverEmail(item: PendingEmailDispatch, settings?: AppSettings):
             content: item.base64Data
           }
         ]
-      })
-    });
+      }
+    );
 
     if (!res.ok) {
-      const errJson = await res.json().catch(() => ({}));
-      throw new Error(`Resend API Error: ${errJson?.message || res.statusText}`);
+      const errDetail = res.data?.message || res.rawText || `Status ${res.status}`;
+      throw new Error(`Resend Error: ${errDetail}`);
     }
-    return { success: true, note: 'Delivered via Resend with Excel attachment' };
+    return { success: true, note: `Delivered via Resend with Excel attachment to ${item.recipients.join(', ')}` };
   }
 
   // Option 2: Custom Webhook / Google Apps Script
@@ -196,18 +262,14 @@ async function deliverEmail(item: PendingEmailDispatch, settings?: AppSettings):
     const headers: Record<string, string> = {
       'Content-Type': 'application/json'
     };
-    if (config.apiKey) {
-      headers['Authorization'] = `Bearer ${config.apiKey}`;
+    if (rawKey) {
+      headers['Authorization'] = `Bearer ${rawKey}`;
     }
 
-    const res = await fetch(config.endpoint, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(payload)
-    });
+    const res = await universalPost(config.endpoint, headers, payload);
 
     if (!res.ok) {
-      throw new Error(`Endpoint responded with status ${res.status}: ${res.statusText}`);
+      throw new Error(`Endpoint responded with status ${res.status}: ${res.rawText || 'Request failed'}`);
     }
     return { success: true, note: 'Delivered via custom webhook' };
   }
@@ -224,6 +286,7 @@ async function deliverEmail(item: PendingEmailDispatch, settings?: AppSettings):
       const formPayload = {
         _subject: item.subject,
         _template: 'table',
+        _captcha: 'false',
         'Session Date': item.sessionSummary.date,
         'Period': `Period ${item.sessionSummary.period}`,
         'Subject': `${item.sessionSummary.subjectCode} ${item.sessionSummary.subjectName ? `(${item.sessionSummary.subjectName})` : ''}`,
@@ -235,24 +298,28 @@ async function deliverEmail(item: PendingEmailDispatch, settings?: AppSettings):
         'Platform': 'Anexus Class Monitor'
       };
 
-      const res = await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(recipient)}`, {
-        method: 'POST',
-        headers: {
+      const res = await universalPost(
+        `https://formsubmit.co/ajax/${encodeURIComponent(recipient)}`,
+        {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        body: JSON.stringify(formPayload)
-      });
+        formPayload
+      );
 
-      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(`FormSubmit HTTP ${res.status}: ${res.rawText || 'Failed to dispatch'}`);
+      }
+
+      const json = typeof res.data === 'object' && res.data !== null ? res.data : {};
       if (json.message && json.message.toLowerCase().includes('activation')) {
         lastNote = `Activation email sent to ${recipient}. Please click 'Activate Form' in your inbox once.`;
       } else {
         lastNote = `Delivered to ${recipient}`;
       }
     } catch (err: any) {
-      console.warn(`[Email Dispatcher] FormSubmit failed for ${recipient}:`, err);
-      throw new Error(`FormSubmit delivery failed: ${err?.message || err}`);
+      console.warn(`[Email Dispatcher] Delivery failed for ${recipient}:`, err);
+      throw new Error(`Delivery failed: ${err?.message || err}`);
     }
   }
 
@@ -266,7 +333,9 @@ export async function flushPendingAttendanceEmails(
   settings?: AppSettings,
   onDelivered?: (count: number, note?: string) => void
 ): Promise<{ processed: number; succeeded: number; failed: number; lastNote?: string; lastError?: string }> {
-  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+  // Only check navigator.onLine on non-native environments (browser/desktop)
+  // On native Android/iOS, WebView's navigator.onLine can be inaccurate; let native HTTP handle network connectivity
+  if (!Capacitor.isNativePlatform() && typeof navigator !== 'undefined' && !navigator.onLine) {
     return { processed: 0, succeeded: 0, failed: 0, lastError: 'Device is offline' };
   }
 

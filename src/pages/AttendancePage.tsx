@@ -53,6 +53,7 @@ import * as XLSX from 'xlsx';
 import { exportXlsxWorkbook, exportCsvFile } from '../utils/fileExport';
 import { buildStructuredSessionWorkbook } from '../utils/excelReportGenerator';
 import { enqueueAttendanceEmail, flushPendingAttendanceEmails } from '../utils/emailDispatcher';
+import { Capacitor } from '@capacitor/core';
 
 export const AttendancePage: React.FC = () => {
   const { showToast } = useNotification();
@@ -440,7 +441,8 @@ export const AttendancePage: React.FC = () => {
 
         const { queued } = enqueueAttendanceEmail(sessionPayload, currentSettings);
         if (queued) {
-          if (typeof navigator !== 'undefined' && navigator.onLine) {
+          const isOnline = Capacitor.isNativePlatform() || (typeof navigator !== 'undefined' && navigator.onLine);
+          if (isOnline) {
             flushPendingAttendanceEmails(currentSettings).then(res => {
               if (res.succeeded > 0) {
                 showToast(

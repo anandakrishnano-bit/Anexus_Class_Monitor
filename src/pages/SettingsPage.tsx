@@ -107,6 +107,7 @@ import {
 import { CENTRAL_FIREBASE_CONFIG, isCentralFirebaseConfigured, verifyAdminAccessCode, createAdminSessionToken } from '../config/firebaseConfig';
 import { Database, Share2, Shield, Mail, Send } from 'lucide-react';
 import { enqueueAttendanceEmail, flushPendingAttendanceEmails, shareAttendanceReport } from '../utils/emailDispatcher';
+import { Capacitor } from '@capacitor/core';
 
 interface SettingsPageProps {
   onOpenWalkthrough?: () => void;
@@ -484,7 +485,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenWalkthrough, o
       const { queued } = enqueueAttendanceEmail(sampleData, settingsConfig);
 
       if (queued) {
-        if (typeof navigator !== 'undefined' && navigator.onLine) {
+        const isOnline = Capacitor.isNativePlatform() || (typeof navigator !== 'undefined' && navigator.onLine);
+        if (isOnline) {
           const res = await flushPendingAttendanceEmails(settingsConfig);
           if (res.succeeded > 0) {
             triggerHaptic('success');
