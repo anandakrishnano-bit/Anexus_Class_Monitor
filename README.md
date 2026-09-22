@@ -10,6 +10,21 @@ Developed by [Anandakrishnan](https://github.com/anandakrishnano-bit).
 
 ---
 
+## About
+
+Anexus Class Manager is designed to simplify daily classroom coordination for students, class representatives, and teachers. Managing attendance across multiple class periods, tracking absentees, and preparing reports by hand often takes up valuable time.
+
+This project offers an easy, reliable solution:
+- Mark attendance quickly period by period on a phone, tablet, or computer.
+- Review and update marked absentees across any period throughout the day without losing changes.
+- Automatically generate clean, well-formatted Excel spreadsheets ready to share with faculty.
+- Send attendance summaries directly to recipient email inboxes as soon as attendance is taken.
+- Keep track of current class periods with an ongoing countdown notification on Android.
+- View and organize your weekly timetable and subject schedule in one place.
+- Works fully offline directly on your device, with optional cloud backup support.
+
+---
+
 ## Ways to Use
 
 ### 1. Web App (Instant Access)
