@@ -33,7 +33,7 @@ function Download-AndroidApk {
         
         if (-not $ApkAsset) {
             Write-Host "No APK asset found in the latest release. Downloading from fallback link..." -ForegroundColor Yellow
-            $DownloadUrl = "https://github.com/$RepoOwner/$RepoName/releases/download/v1.0.6/anexus-class-manager.apk"
+            $DownloadUrl = "https://github.com/$RepoOwner/$RepoName/releases/download/v1.0.7/anexus-class-manager.apk"
         } else {
             $DownloadUrl = $ApkAsset.browser_download_url
         }

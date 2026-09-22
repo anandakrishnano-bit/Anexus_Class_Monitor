@@ -1,6 +1,6 @@
 # Anexus Class Manager
 
-> A production-grade academic class management, attendance tracking, and timetable coordination platform for students, faculty representatives, and academic coordinators.
+A simple and practical tool for students, class representatives, and teachers to track attendance, organize timetables, and export clean Excel reports.
 
 Developed by [Anandakrishnan](https://github.com/anandakrishnano-bit).
 
@@ -10,99 +10,96 @@ Developed by [Anandakrishnan](https://github.com/anandakrishnano-bit).
 
 ---
 
-## Download & Installation
+## Ways to Use
 
-### Option 1: Live Web App (Permanent — Instant Cloud Access)
-Access the fully functional, permanent web app directly in any browser:
-- **[Launch Live Web App](https://anandakrishnano-bit.github.io/Anexus_Class_Monitor/)**
-- *Hosted 24/7 on GitHub Pages with complete offline IndexedDB support.*
+### 1. Web App (Instant Access)
+Open and use the app directly in your browser without installing anything:
+- **[Launch Web App](https://anandakrishnano-bit.github.io/Anexus_Class_Monitor/)**
 
----
+### 2. Android App (APK)
+Download and install the app on your Android phone:
+- **[Download Latest APK](https://github.com/anandakrishnano-bit/Anexus_Class_Monitor/releases/latest)**
 
-### Option 2: Android (Native APK)
-Download the pre-compiled APK directly to your smartphone:
-- **[Download Latest APK from Releases](https://github.com/anandakrishnano-bit/Anexus_Class_Monitor/releases/latest)**
-- Install on Android (supports Android 8.0 through Android 16).
+### 3. Desktop App (Terminal)
+Run the app as a desktop window on your computer using a single command:
 
----
-
-### Option 3: Terminal One-Liner (Native Desktop App)
-
-You can download and run the Anexus Class Manager as a standalone desktop app (no browser tabs, no localhost needed) directly via your terminal:
-
-#### Windows (PowerShell)
-Open PowerShell and run:
+**Windows (PowerShell)**:
 ```powershell
 irm https://raw.githubusercontent.com/anandakrishnano-bit/Anexus_Class_Monitor/main/install.ps1 | iex
 ```
 
-#### macOS / Linux (Terminal)
-Open Terminal and run:
+**macOS / Linux (Terminal)**:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/anandakrishnano-bit/Anexus_Class_Monitor/main/install.sh | bash
 ```
 
-Alternatively, if you have already cloned the repository:
+Or run directly from the project directory:
 ```bash
 npm run desktop
 ```
 
 ---
 
-## Key Features
+## What It Does
 
-### 1. Automated Attendance Excel Emailing & Instant Dispatch
-- **Direct Dispatch**: When an attendance session is submitted, a color-coded, tabulated `.xlsx` spreadsheet is generated and immediately sent to designated recipient email addresses.
-- **Offline Reliability Queue**: If taking attendance in a low-connectivity classroom or offline, the spreadsheet is securely queued locally in encrypted storage and dispatched automatically the instant internet connection is restored.
-- **Recipient Management**: Enable/disable automated emailing and manage recipient lists anytime from Settings.
+### Fast Attendance Marking
+- Mark attendance for any period (Present, Absent, or On Duty).
+- Remembers marked absentees across all periods during the day, so you can easily review or update later.
+- Visual badges on period buttons show absentee counts at a glance.
 
-### 2. Tabulated & Structured Excel Reports
-- Human-readable `.xlsx` reports featuring executive summary cards, KPI blocks (Attendance Rate, Total Present/Absent/OD), clean grid alignment, and visual status badges (`🟢 PRESENT`, `🔴 ABSENT`, `🟡 ON DUTY`).
-- Includes both session-by-session breakdowns and comprehensive multi-sheet semester logs.
+### Clean Excel Reports
+- Automatically creates neat, formatted Excel spreadsheets (.xlsx).
+- Includes clear summaries showing total students, present count, absent list, and attendance percentage.
+- Exports single-session sheets or full semester records.
 
-### 3. Android Native Foreground Live Class Activity
-- Strictly **ONE** ongoing live notification for class activity with real-time `Chronometer` countdown ticking smoothly on the lock screen and status bar.
-- Powered by a native Android Foreground Service (`LiveClassService`) preventing the OS from killing the background process when switching apps or locking the device.
-- Task, exam, and homework reminders remain cleanly distinct and scheduled separately.
-- One-tap "Take Attendance" quick action directly from the notification tray.
+### Automatic Email Reports
+- Sends the attendance summary directly to designated teachers or coordinators after you finish marking.
+- If you mark attendance without internet, reports are saved locally and sent as soon as you reconnect.
+- Easily add or remove recipient email addresses from the Settings page.
 
-### 4. Cohesive Dynamic Palette & Smooth Phone UI
-- Unified Material You tertiary accent styling (`var(--accent-tertiary)`) throughout the home dashboard.
-- Smooth `cubic-bezier(0.16, 1, 0.3, 1)` transitions and responsive safe-area insets (`env(safe-area-inset-bottom)`) optimized for modern gesture-navigation smartphones.
+### Live Class Notification on Android
+- Shows a single notification on your phone with the active class subject and time remaining.
+- Updates continuously on the lock screen and notification tray so you always know how much time is left in the period.
+- Quick button to jump straight to attendance marking.
 
-### 5. Academic Schedule & Weekly Timetable Matrix
-- Interactive weekly schedule matrix (6 days, up to 11 periods per day).
-- Mobile-optimized responsive layout with Day Card view for smartphone screens.
-- Conflict-protected slot configuration to eliminate accidental edits while scrolling.
+### Weekly Timetable
+- View and manage your weekly schedule (days and period times).
+- Clean, readable view designed to work smoothly on phones and computers.
 
-### 6. 100% Offline-First Architecture
-- Operates locally using client-side IndexedDB persistence (Dexie.js).
-- Optional end-to-end Firebase cloud backup and synchronization for multi-device coordination.
-
----
-
-## Architecture & Technology Stack
-
-| Layer | Technology |
-|---|---|
-| **Core Framework** | React 18, TypeScript, Vite |
-| **Local Database** | Dexie.js (Client-side IndexedDB) |
-| **Styling & UI** | Vanilla CSS Design Tokens, Tailwind CSS, Lucide Icons |
-| **Mobile Runtime** | Capacitor Android Native Shell (Java Foreground Service) |
-| **Spreadsheet Engine** | SheetJS (Structured XML & Tabulated XLSX Generation) |
-| **Cloud Layer (Optional)** | Firebase Cloud Firestore (REST API) |
-| **AI Assistants** | Google Gemini API (v1beta/v1), Web-LLM Local Models |
+### Works Offline
+- All attendance records, student lists, and schedules are stored directly on your device.
+- Does not require a constant internet connection to take attendance.
+- Optional cloud sync is available for multi-device backup.
 
 ---
 
-## Privacy & Security
+## Development Setup
 
-- **Zero Hardcoded Secrets**: All sensitive API keys, secrets, and credentials have been strictly audited and excluded from the repository.
-- **No Third-Party Telemetry**: The application contains no analytics tracking, spyware, or telemetry SDKs.
-- **Client-Side Encryption & Hashing**: Administrative authentication relies on browser SubtleCrypto SHA-256 digests.
+To run or build the project from source:
+
+1. Clone the repository:
+```bash
+git clone https://github.com/anandakrishnano-bit/Anexus_Class_Monitor.git
+cd Anexus_Class_Monitor
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Start the local server:
+```bash
+npm run dev
+```
+
+4. Build the application:
+```bash
+npm run build
+```
 
 ---
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.

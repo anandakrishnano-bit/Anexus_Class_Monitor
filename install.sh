@@ -17,7 +17,7 @@ download_apk() {
     DOWNLOAD_URL=$(curl -sSL "$LATEST_API" | grep -o 'https://[^"]*app-release.apk' | head -n 1 || true)
 
     if [ -z "$DOWNLOAD_URL" ]; then
-        DOWNLOAD_URL="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/v1.0.6/anexus-class-manager.apk"
+        DOWNLOAD_URL="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/v1.0.7/anexus-class-manager.apk"
     fi
 
     DEST="$HOME/Downloads/Anexus_Class_Manager.apk"
