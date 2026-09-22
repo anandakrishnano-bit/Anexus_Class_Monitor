@@ -106,7 +106,7 @@ import {
 } from '../utils/firebaseSync';
 import { CENTRAL_FIREBASE_CONFIG, isCentralFirebaseConfigured, verifyAdminAccessCode, createAdminSessionToken } from '../config/firebaseConfig';
 import { Database, Share2, Shield, Mail, Send } from 'lucide-react';
-import { enqueueAttendanceEmail, flushPendingAttendanceEmails } from '../utils/emailDispatcher';
+import { enqueueAttendanceEmail, flushPendingAttendanceEmails, shareAttendanceReport } from '../utils/emailDispatcher';
 
 interface SettingsPageProps {
   onOpenWalkthrough?: () => void;
@@ -149,6 +149,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenWalkthrough, o
   const [autoEmailAttendanceExcel, setAutoEmailAttendanceExcel] = useState<boolean>(currentSettings?.autoEmailAttendanceExcel ?? false);
   const [attendanceExcelRecipients, setAttendanceExcelRecipients] = useState<string[]>(currentSettings?.attendanceExcelRecipients || []);
   const [newRecipientInput, setNewRecipientInput] = useState<string>('');
+  const [emailApiKey, setEmailApiKey] = useState<string>(currentSettings?.emailServiceConfig?.apiKey || '');
+  const [emailWebhookEndpoint, setEmailWebhookEndpoint] = useState<string>(currentSettings?.emailServiceConfig?.endpoint || '');
   const [isTestingEmail, setIsTestingEmail] = useState<boolean>(false);
 
   // Sync settings when loaded from IndexedDB
@@ -166,6 +168,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenWalkthrough, o
       if (currentSettings.notificationsEnabled !== undefined) setLiveNotificationsEnabled(currentSettings.notificationsEnabled);
       if (currentSettings.autoEmailAttendanceExcel !== undefined) setAutoEmailAttendanceExcel(currentSettings.autoEmailAttendanceExcel);
       if (currentSettings.attendanceExcelRecipients !== undefined) setAttendanceExcelRecipients(currentSettings.attendanceExcelRecipients);
+      if (currentSettings.emailServiceConfig?.apiKey) setEmailApiKey(currentSettings.emailServiceConfig.apiKey);
+      if (currentSettings.emailServiceConfig?.endpoint) setEmailWebhookEndpoint(currentSettings.emailServiceConfig.endpoint);
       if (currentSettings.geminiApiKey !== undefined) setGeminiApiKey(currentSettings.geminiApiKey);
       if (currentSettings.geminiModel !== undefined) setGeminiModel(currentSettings.geminiModel);
       if (currentSettings.aiProvider !== undefined) setAiProvider(currentSettings.aiProvider);
@@ -428,6 +432,21 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenWalkthrough, o
     showToast('Recipient Removed', emailToRemove, 'info');
   };
 
+  const handleSaveEmailSettings = async () => {
+    triggerHaptic('success');
+    if (currentSettings?.id) {
+      await db.settings.update(currentSettings.id, {
+        autoEmailAttendanceExcel,
+        attendanceExcelRecipients,
+        emailServiceConfig: {
+          apiKey: emailApiKey.trim() || undefined,
+          endpoint: emailWebhookEndpoint.trim() || undefined
+        }
+      });
+      showToast('Email Settings Saved', `Auto-email ${autoEmailAttendanceExcel ? 'enabled' : 'disabled'} with ${attendanceExcelRecipients.length} recipient(s)`, 'success');
+    }
+  };
+
   const handleTestEmailDispatch = async () => {
     if (attendanceExcelRecipients.length === 0) {
       showToast('No Recipients', 'Please add at least one recipient email address first', 'warning');
@@ -441,35 +460,37 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenWalkthrough, o
         periodNumber: 1,
         subjectCode: 'TEST101',
         subjectName: 'Test Subject Audit',
-        facultyName: 'Lead Professor',
+        facultyName: classRepName || 'Course Faculty',
         className,
         section,
         department,
         records: [
-          { registerNo: 'REG001', name: 'Student One', status: 'present' as const, remarks: 'Verified present' },
-          { registerNo: 'REG002', name: 'Student Two', status: 'absent' as const, remarks: 'Absent from lecture' },
-          { registerNo: 'REG003', name: 'Student Three', status: 'od' as const, remarks: 'College symposium' }
+          { registerNo: 'REG001', name: 'Sample Student A', status: 'present' as const, remarks: 'Verified present' },
+          { registerNo: 'REG002', name: 'Sample Student B', status: 'absent' as const, remarks: 'Absent from lecture' },
+          { registerNo: 'REG003', name: 'Sample Student C', status: 'od' as const, remarks: 'College duty' }
         ]
       };
 
-      const { queued } = enqueueAttendanceEmail(sampleData, {
+      const settingsConfig = {
         ...currentSettings!,
         autoEmailAttendanceExcel: true,
-        attendanceExcelRecipients
-      });
+        attendanceExcelRecipients,
+        emailServiceConfig: {
+          apiKey: emailApiKey.trim() || undefined,
+          endpoint: emailWebhookEndpoint.trim() || undefined
+        }
+      };
+
+      const { queued } = enqueueAttendanceEmail(sampleData, settingsConfig);
 
       if (queued) {
         if (typeof navigator !== 'undefined' && navigator.onLine) {
-          const res = await flushPendingAttendanceEmails({
-            ...currentSettings!,
-            autoEmailAttendanceExcel: true,
-            attendanceExcelRecipients
-          });
+          const res = await flushPendingAttendanceEmails(settingsConfig);
           if (res.succeeded > 0) {
             triggerHaptic('success');
-            showToast('Test Email Dispatched', `Sample attendance sheet sent to ${attendanceExcelRecipients.length} recipient(s)`, 'success');
+            showToast('Email Sent Successfully!', res.lastNote || `Test attendance sheet sent to ${attendanceExcelRecipients.join(', ')}`, 'success');
           } else {
-            showToast('Dispatch Handled', 'Queued in email dispatcher for delivery', 'info');
+            showToast('Dispatch Notice', res.lastError || res.lastNote || 'Dispatch queued', 'info');
           }
         } else {
           showToast('Queued for Email', 'Offline: Sample report queued and will send when online', 'info');
@@ -480,6 +501,25 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenWalkthrough, o
     } finally {
       setIsTestingEmail(false);
     }
+  };
+
+  const handleShareSampleReport = async () => {
+    triggerHaptic('light');
+    const sampleData = {
+      date: format(new Date(), 'yyyy-MM-dd'),
+      periodNumber: 1,
+      subjectCode: 'TEST101',
+      subjectName: 'Test Attendance Audit',
+      facultyName: classRepName || 'Course Faculty',
+      className,
+      section,
+      department,
+      records: [
+        { registerNo: 'REG001', name: 'Sample Student A', status: 'present' as const, remarks: 'Verified present' },
+        { registerNo: 'REG002', name: 'Sample Student B', status: 'absent' as const, remarks: 'Absent from lecture' }
+      ]
+    };
+    await shareAttendanceReport(sampleData);
   };
 
   // Test Firebase Firestore Connection
@@ -1748,23 +1788,89 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenWalkthrough, o
               </div>
             </div>
 
-            {/* Test Email Button & Save notice */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2">
-              <p className="text-[11px] text-neutral-400 font-medium">
-                Remember to tap <strong>Save Settings</strong> below to persist your recipient preferences.
-              </p>
+            {/* Optional Email Gateway Configuration */}
+            <div className="pt-3 border-t border-neutral-100 dark:border-neutral-800 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-bold text-neutral-800 dark:text-neutral-200">
+                    Email Gateway Provider
+                  </h4>
+                  <p className="text-[11px] text-neutral-400">
+                    {emailApiKey.startsWith('re_') ? 'Resend API Active (Direct .xlsx Attachments)' : 'FormSubmit Active (Zero-config direct tabular summary)'}
+                  </p>
+                </div>
+              </div>
 
-              <Button
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider block">
+                    Resend API Key (Optional)
+                  </label>
+                  <Input
+                    type="password"
+                    placeholder="re_xxxxxxxxxxxx"
+                    value={emailApiKey}
+                    onChange={e => setEmailApiKey(e.target.value)}
+                    className="font-mono text-xs"
+                  />
+                  <p className="text-[10px] text-neutral-400">
+                    Free from <a href="https://resend.com" target="_blank" rel="noreferrer" className="underline hover:text-neutral-200">resend.com</a> to attach the actual .xlsx file directly to emails.
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider block">
+                    Custom Webhook / Apps Script (Optional)
+                  </label>
+                  <Input
+                    type="url"
+                    placeholder="https://script.google.com/macros/s/..."
+                    value={emailWebhookEndpoint}
+                    onChange={e => setEmailWebhookEndpoint(e.target.value)}
+                    className="font-mono text-xs"
+                  />
+                  <p className="text-[10px] text-neutral-400">
+                    Forward attendance payload to your own Google Apps Script or Zapier webhook.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions: Save, Test, Share */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-neutral-100 dark:border-neutral-800">
+              <button
                 type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleTestEmailDispatch}
-                disabled={isTestingEmail || attendanceExcelRecipients.length === 0}
-                className="gap-1.5 text-xs font-bold shrink-0 text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-neutral-700"
+                onClick={handleSaveEmailSettings}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-neutral-900 hover:bg-neutral-800 dark:bg-neutral-100 dark:hover:bg-white text-white dark:text-neutral-900 font-extrabold text-xs shadow-sm transition-all active:scale-95"
               >
-                <Send className={`w-3.5 h-3.5 ${isTestingEmail ? 'animate-pulse' : ''}`} />
-                <span>{isTestingEmail ? 'Sending Test...' : 'Test Email Dispatch'}</span>
-              </Button>
+                <Save className="w-3.5 h-3.5" />
+                <span>Save Email Settings</span>
+              </button>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleShareSampleReport}
+                  className="gap-1.5 text-xs font-bold shrink-0 text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-neutral-700"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>Share via App / Mail</span>
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleTestEmailDispatch}
+                  disabled={isTestingEmail || attendanceExcelRecipients.length === 0}
+                  className="gap-1.5 text-xs font-bold shrink-0 text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-neutral-700"
+                >
+                  <Send className={`w-3.5 h-3.5 ${isTestingEmail ? 'animate-pulse' : ''}`} />
+                  <span>{isTestingEmail ? 'Dispatching...' : 'Test Email Dispatch'}</span>
+                </Button>
+              </div>
             </div>
           </div>
         )}

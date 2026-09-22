@@ -179,49 +179,97 @@ export const AttendancePage: React.FC = () => {
     }
   }, [selectedPeriod, selectedDate, schedules, subjects]);
 
-  // Initialize statusMap
-  useEffect(() => {
-    if (students.length > 0) {
-      const initialMap: Record<number, AttendanceStatus> = {};
-      students.forEach(st => {
-        if (st.id !== undefined) {
-          initialMap[st.id] = 'present';
-        }
-      });
-      setStatusMap(initialMap);
-    }
-  }, [students]);
+  // Helper to persist draft for a given date and period
+  const persistDraft = (
+    date: string,
+    period: number,
+    statuses: Record<number, AttendanceStatus>,
+    remarks: Record<number, string>
+  ) => {
+    try {
+      localStorage.setItem(`__att_draft_${date}_p${period}`, JSON.stringify({
+        statuses,
+        remarks,
+        updatedAt: Date.now()
+      }));
+    } catch (e) {}
+  };
 
-  // Load existing session if saved
-  useEffect(() => {
-    if (selectedDate && selectedPeriod && selectedSubject) {
-      db.attendanceSessions
-        .where({ date: selectedDate, periodNumber: selectedPeriod, subjectCode: selectedSubject })
-        .first()
-        .then(existingSession => {
-          if (existingSession && existingSession.records && existingSession.records.length > 0) {
-            const loadedMap: Record<number, AttendanceStatus> = {};
-            const loadedRemarks: Record<number, string> = {};
-            existingSession.records.forEach(r => {
-              loadedMap[r.studentId] = r.status;
-              if (r.remarks) loadedRemarks[r.studentId] = r.remarks;
-            });
-            setStatusMap(prev => ({ ...prev, ...loadedMap }));
-            setRemarksMap(prev => ({ ...prev, ...loadedRemarks }));
-          } else {
-            // No session recorded for this period yet -> RESET ALL STUDENTS TO PRESENT!
-            const freshMap: Record<number, AttendanceStatus> = {};
-            students.forEach(st => {
-              if (st.id !== undefined) {
-                freshMap[st.id] = 'present';
-              }
-            });
-            setStatusMap(freshMap);
-            setRemarksMap({});
-          }
-        });
+  // Helper to query recorded status for a period on the selected date
+  const getPeriodBadge = (pNum: number) => {
+    const saved = sessions.find(s => s.date === selectedDate && s.periodNumber === pNum);
+    if (saved && saved.records) {
+      const absCount = saved.records.filter(r => r.status === 'absent').length;
+      return { isDone: true, absentCount: absCount, isDraft: false };
     }
-  }, [selectedDate, selectedPeriod, selectedSubject, students]);
+    try {
+      const raw = localStorage.getItem(`__att_draft_${selectedDate}_p${pNum}`);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.statuses) {
+          const absCount = Object.values(parsed.statuses).filter(st => st === 'absent').length;
+          return { isDone: true, absentCount: absCount, isDraft: true };
+        }
+      }
+    } catch (e) {}
+    return { isDone: false, absentCount: 0, isDraft: false };
+  };
+
+  // Load existing session or active draft when date, period, or students change
+  useEffect(() => {
+    if (!selectedDate || !selectedPeriod || students.length === 0) return;
+
+    // 1. Check if a local draft exists for this period and date
+    try {
+      const rawDraft = localStorage.getItem(`__att_draft_${selectedDate}_p${selectedPeriod}`);
+      if (rawDraft) {
+        const parsed = JSON.parse(rawDraft);
+        if (parsed.statuses && Object.keys(parsed.statuses).length > 0) {
+          setStatusMap(parsed.statuses);
+          setRemarksMap(parsed.remarks || {});
+          return;
+        }
+      }
+    } catch (e) {}
+
+    // 2. Check Dexie database for an officially saved session for this date & period
+    db.attendanceSessions
+      .where('date')
+      .equals(selectedDate)
+      .filter(s => s.periodNumber === selectedPeriod)
+      .first()
+      .then(existingSession => {
+        if (existingSession && existingSession.records && existingSession.records.length > 0) {
+          const loadedMap: Record<number, AttendanceStatus> = {};
+          const loadedRemarks: Record<number, string> = {};
+          existingSession.records.forEach(r => {
+            loadedMap[r.studentId] = r.status;
+            if (r.remarks) loadedRemarks[r.studentId] = r.remarks;
+          });
+          if (existingSession.subjectCode) {
+            setSelectedSubject(existingSession.subjectCode);
+          }
+          if (existingSession.facultyName) {
+            setSelectedFaculty(existingSession.facultyName);
+          }
+          setStatusMap(loadedMap);
+          setRemarksMap(loadedRemarks);
+        } else {
+          // No session or draft recorded yet -> start with all present
+          const freshMap: Record<number, AttendanceStatus> = {};
+          students.forEach(st => {
+            if (st.id !== undefined) {
+              freshMap[st.id] = 'present';
+            }
+          });
+          setStatusMap(freshMap);
+          setRemarksMap({});
+        }
+      })
+      .catch(err => {
+        console.warn('Could not query attendance session', err);
+      });
+  }, [selectedDate, selectedPeriod, students]);
 
   // Filtered Students
   const filteredStudents = useMemo(() => {
@@ -284,7 +332,9 @@ export const AttendancePage: React.FC = () => {
     setStatusMap(prev => {
       const current = prev[studentId] || 'present';
       const nextStatus: AttendanceStatus = current === 'present' ? 'absent' : 'present';
-      return { ...prev, [studentId]: nextStatus };
+      const updated = { ...prev, [studentId]: nextStatus };
+      persistDraft(selectedDate, selectedPeriod, updated, remarksMap);
+      return updated;
     });
   };
 
@@ -299,8 +349,11 @@ export const AttendancePage: React.FC = () => {
 
   const handleSaveStudentModal = () => {
     if (targetStudent && targetStudent.id) {
-      setStatusMap(prev => ({ ...prev, [targetStudent.id!]: studentModalStatus }));
-      setRemarksMap(prev => ({ ...prev, [targetStudent.id!]: studentRemarkInput }));
+      const updatedStatuses = { ...statusMap, [targetStudent.id!]: studentModalStatus };
+      const updatedRemarks = { ...remarksMap, [targetStudent.id!]: studentRemarkInput };
+      setStatusMap(updatedStatuses);
+      setRemarksMap(updatedRemarks);
+      persistDraft(selectedDate, selectedPeriod, updatedStatuses, updatedRemarks);
       showToast('Updated Student', `${targetStudent.name} -> ${studentModalStatus.toUpperCase()}`, 'success');
       setTargetStudent(null);
     }
@@ -315,6 +368,7 @@ export const AttendancePage: React.FC = () => {
       }
     });
     setStatusMap(updated);
+    persistDraft(selectedDate, selectedPeriod, updated, remarksMap);
     showToast(`Marked all students as ${status}`, undefined, 'info');
   };
 
@@ -335,12 +389,15 @@ export const AttendancePage: React.FC = () => {
       }));
 
       const existing = await db.attendanceSessions
-        .where({ date: selectedDate, periodNumber: selectedPeriod, subjectCode: selectedSubject })
+        .where('date')
+        .equals(selectedDate)
+        .filter(s => s.periodNumber === selectedPeriod)
         .first();
 
       if (existing && existing.id) {
         await db.attendanceSessions.update(existing.id, {
-          subjectName: currentSubjectObj?.name || '',
+          subjectCode: selectedSubject,
+          subjectName: currentSubjectObj?.name || selectedSubject,
           facultyName: selectedFaculty,
           records,
           createdAt: new Date().toISOString()
@@ -350,12 +407,17 @@ export const AttendancePage: React.FC = () => {
           date: selectedDate,
           periodNumber: selectedPeriod,
           subjectCode: selectedSubject,
-          subjectName: currentSubjectObj?.name || '',
+          subjectName: currentSubjectObj?.name || selectedSubject,
           facultyName: selectedFaculty,
           records,
           createdAt: new Date().toISOString()
         });
       }
+
+      // Clear draft for this period now that it is officially saved
+      try {
+        localStorage.removeItem(`__att_draft_${selectedDate}_p${selectedPeriod}`);
+      } catch (e) {}
 
       // Automated Attendance Excel Email Dispatch
       if (currentSettings?.autoEmailAttendanceExcel && currentSettings?.attendanceExcelRecipients?.length) {
@@ -383,9 +445,11 @@ export const AttendancePage: React.FC = () => {
               if (res.succeeded > 0) {
                 showToast(
                   'Excel Report Emailed',
-                  `Dispatched to ${currentSettings.attendanceExcelRecipients?.length} recipient(s)`,
+                  res.lastNote || `Dispatched to ${currentSettings.attendanceExcelRecipients?.length} recipient(s)`,
                   'success'
                 );
+              } else if (res.lastError) {
+                showToast('Email Dispatch Notice', res.lastError, 'info');
               }
             }).catch(() => {});
           } else {
@@ -608,6 +672,8 @@ export const AttendancePage: React.FC = () => {
           const schedMatch = schedules.find(s => s.dayOfWeek === dayName && s.periodNumber === pc.periodNumber);
           const sub = subjects.find(s => s.code === schedMatch?.subjectCode) || subjects[pc.periodNumber - 1] || subjects[0];
 
+          const badge = getPeriodBadge(pc.periodNumber);
+
           return (
             <button
               key={pc.periodNumber}
@@ -629,6 +695,15 @@ export const AttendancePage: React.FC = () => {
                   isSelected ? 'bg-white/20 dark:bg-black/20 text-current' : 'bg-neutral-100 dark:bg-[#262626] text-neutral-600 dark:text-neutral-400'
                 }`}>
                   {sub.code}
+                </span>
+              )}
+              {badge.isDone && (
+                <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black transition-colors ${
+                  badge.absentCount > 0
+                    ? (isSelected ? 'bg-rose-500 text-white' : 'bg-rose-500/20 text-rose-600 dark:text-rose-400')
+                    : (isSelected ? 'bg-emerald-500 text-white' : 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400')
+                }`}>
+                  {badge.absentCount > 0 ? `${badge.absentCount} abs` : 'All P'}
                 </span>
               )}
             </button>

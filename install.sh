@@ -47,8 +47,8 @@ install_desktop() {
     npm install --silent
     npm run build --silent
 
-    echo "[4/4] Launching Anexus Class Manager..."
-    npx vite preview --port 4173 --open
+    echo "[4/4] Launching Anexus Class Manager Desktop App..."
+    npm run desktop
 }
 
 if [ "$1" = "--android" ]; then

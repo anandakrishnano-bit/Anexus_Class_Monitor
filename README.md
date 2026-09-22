@@ -12,16 +12,23 @@ Developed by [Anandakrishnan](https://github.com/anandakrishnano-bit).
 
 ## Download & Installation
 
-### Option 1: Android (Native APK)
+### Option 1: Live Web App (Permanent — Instant Cloud Access)
+Access the fully functional, permanent web app directly in any browser:
+- **[Launch Live Web App](https://anandakrishnano-bit.github.io/Anexus_Class_Monitor/)**
+- *Hosted 24/7 on GitHub Pages with complete offline IndexedDB support.*
+
+---
+
+### Option 2: Android (Native APK)
 Download the pre-compiled APK directly to your smartphone:
 - **[Download Latest APK from Releases](https://github.com/anandakrishnano-bit/Anexus_Class_Monitor/releases/latest)**
 - Install on Android (supports Android 8.0 through Android 16).
 
 ---
 
-### Option 2: Terminal One-Liner (App Download & Launch)
+### Option 3: Terminal One-Liner (Native Desktop App)
 
-You can download and run the Anexus Class Manager application directly via your terminal:
+You can download and run the Anexus Class Manager as a standalone desktop app (no browser tabs, no localhost needed) directly via your terminal:
 
 #### Windows (PowerShell)
 Open PowerShell and run:
@@ -33,6 +40,11 @@ irm https://raw.githubusercontent.com/anandakrishnano-bit/Anexus_Class_Monitor/m
 Open Terminal and run:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/anandakrishnano-bit/Anexus_Class_Monitor/main/install.sh | bash
+```
+
+Alternatively, if you have already cloned the repository:
+```bash
+npm run desktop
 ```
 
 ---

@@ -78,8 +78,8 @@ function Install-DesktopApp {
         npm install --silent
         npm run build --silent
 
-        Write-Host "[4/4] Launching Anexus Class Manager app..." -ForegroundColor Green
-        npx vite preview --port 4173 --open
+        Write-Host "[4/4] Launching Anexus Class Manager Desktop App..." -ForegroundColor Green
+        npm run desktop
     } finally {
         Pop-Location
     }
