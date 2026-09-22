@@ -12,8 +12,9 @@ import { LocalAiChatbox } from './components/common/LocalAiChatbox';
 import { SplashScreen } from './components/common/SplashScreen';
 import { WelcomeSetup } from './components/common/WelcomeSetup';
 import { syncLiveAndroidNotification } from './utils/liveNotification';
-import { checkAndTriggerUpcomingAlerts, scheduleClassStart10MinReminder, requestNotificationPermission } from './utils/notifications';
+import { checkAndTriggerUpcomingAlerts, requestNotificationPermission } from './utils/notifications';
 import { checkAndPerformNightlySync } from './utils/firebaseSync';
+import { flushPendingAttendanceEmails } from './utils/emailDispatcher';
 import { format } from 'date-fns';
 
 import { Dashboard } from './pages/Dashboard';
@@ -84,22 +85,6 @@ export const AppContent: React.FC = () => {
     checkAndTriggerUpcomingAlerts(todaySchedules, periodConfigs, pendingTasks, showToast);
     syncLiveAndroidNotification(schedules, periodConfigs, subjects, currentSettings);
 
-    // Auto schedule next periods if class day
-    if (isClassDay) {
-      todaySchedules.forEach(item => {
-        const pc = periodConfigs.find(p => p.periodNumber === item.periodNumber);
-        if (pc && pc.startTime) {
-          scheduleClassStart10MinReminder(
-            item.periodNumber,
-            item.subjectCode,
-            pc.startTime,
-            item.classroom,
-            item.facultyName
-          );
-        }
-      });
-    }
-
     // Automatic Nightly Cloud Sync check
     checkAndPerformNightlySync(ts => {
       showToast('Nightly Backup Done', `Class synced to cloud at ${format(new Date(ts), 'HH:mm')}`, 'info');
@@ -142,15 +127,20 @@ export const AppContent: React.FC = () => {
       }
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleVisibilityChange);
-    window.addEventListener('blur', handleVisibilityChange);
+    const handleOnline = () => {
+      flushPendingAttendanceEmails(currentSettings, count => {
+        showToast('Pending Emails Sent', `Internet restored: emailed ${count} queued attendance sheet(s)`, 'success');
+      }).catch(() => {});
+    };
+
+    window.addEventListener('online', handleOnline);
 
     return () => {
       stopForegroundInterval();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleVisibilityChange);
       window.removeEventListener('blur', handleVisibilityChange);
+      window.removeEventListener('online', handleOnline);
     };
   }, [schedules, periodConfigs, subjects, tasks, currentSettings, showToast]);
 
@@ -212,7 +202,7 @@ export const AppContent: React.FC = () => {
             key={activeTab}
             className={`flex-1 min-w-0 h-full overflow-y-auto overscroll-y-contain ${
               slideDirection === 'right' ? 'page-slide-right' : 'page-slide-left'
-            } pb-24 md:pb-8`}
+            } pb-[calc(env(safe-area-inset-bottom,0px)+6rem)] md:pb-8`}
           >
             {renderActivePage()}
           </main>

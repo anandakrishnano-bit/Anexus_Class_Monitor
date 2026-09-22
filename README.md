@@ -4,52 +4,68 @@
 
 Developed by [Anandakrishnan](https://github.com/anandakrishnano-bit).
 
+[![Release](https://img.shields.io/github/v/release/anandakrishnano-bit/Anexus_Class_Monitor?color=7C3AED&label=Android%20APK)](https://github.com/anandakrishnano-bit/Anexus_Class_Monitor/releases/latest)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20Windows%20%7C%20macOS%20%7C%20Linux-black)](https://github.com/anandakrishnano-bit/Anexus_Class_Monitor/releases)
+
 ---
 
-## Overview
+## Download & Installation
 
-**Anexus Class Manager** is an offline-first academic management system built with modern web technologies and wrapped for native Android devices using Capacitor. Designed with an intentional monochromatic aesthetic accented by dynamic Material You tertiary colors, the platform allows class representatives and faculty to track attendance, organize weekly period schedules, monitor student eligibility thresholds, and export detailed institutional reports.
+### Option 1: Android (Native APK)
+Download the pre-compiled APK directly to your smartphone:
+- **[Download Latest APK from Releases](https://github.com/anandakrishnano-bit/Anexus_Class_Monitor/releases/latest)**
+- Install on Android (supports Android 8.0 through Android 16).
 
-Core features operate 100% offline using client-side IndexedDB persistence, with optional Firebase cloud synchronization for multi-device classroom collaboration.
+---
+
+### Option 2: Terminal One-Liner (App Download & Launch)
+
+You can download and run the Anexus Class Manager application directly via your terminal:
+
+#### Windows (PowerShell)
+Open PowerShell and run:
+```powershell
+irm https://raw.githubusercontent.com/anandakrishnano-bit/Anexus_Class_Monitor/main/install.ps1 | iex
+```
+
+#### macOS / Linux (Terminal)
+Open Terminal and run:
+```bash
+curl -fsSL https://raw.githubusercontent.com/anandakrishnano-bit/Anexus_Class_Monitor/main/install.sh | bash
+```
 
 ---
 
 ## Key Features
 
-### 1. Attendance Tracking & Verification
-- High-efficiency student attendance recording with tactile feedback.
-- Support for Present, Absent, and On Duty (OD) status tags.
-- Instant absentee summary formatting for institutional messaging.
-- Automatic attendance deficit detector with customizable percentage thresholds.
+### 1. Automated Attendance Excel Emailing & Instant Dispatch
+- **Direct Dispatch**: When an attendance session is submitted, a color-coded, tabulated `.xlsx` spreadsheet is generated and immediately sent to designated recipient email addresses.
+- **Offline Reliability Queue**: If taking attendance in a low-connectivity classroom or offline, the spreadsheet is securely queued locally in encrypted storage and dispatched automatically the instant internet connection is restored.
+- **Recipient Management**: Enable/disable automated emailing and manage recipient lists anytime from Settings.
 
-### 2. Academic Schedule & Weekly Timetable Matrix
+### 2. Tabulated & Structured Excel Reports
+- Human-readable `.xlsx` reports featuring executive summary cards, KPI blocks (Attendance Rate, Total Present/Absent/OD), clean grid alignment, and visual status badges (`🟢 PRESENT`, `🔴 ABSENT`, `🟡 ON DUTY`).
+- Includes both session-by-session breakdowns and comprehensive multi-sheet semester logs.
+
+### 3. Android Native Foreground Live Class Activity
+- Strictly **ONE** ongoing live notification for class activity with real-time `Chronometer` countdown ticking smoothly on the lock screen and status bar.
+- Powered by a native Android Foreground Service (`LiveClassService`) preventing the OS from killing the background process when switching apps or locking the device.
+- Task, exam, and homework reminders remain cleanly distinct and scheduled separately.
+- One-tap "Take Attendance" quick action directly from the notification tray.
+
+### 4. Cohesive Dynamic Palette & Smooth Phone UI
+- Unified Material You tertiary accent styling (`var(--accent-tertiary)`) throughout the home dashboard.
+- Smooth `cubic-bezier(0.16, 1, 0.3, 1)` transitions and responsive safe-area insets (`env(safe-area-inset-bottom)`) optimized for modern gesture-navigation smartphones.
+
+### 5. Academic Schedule & Weekly Timetable Matrix
 - Interactive weekly schedule matrix (6 days, up to 11 periods per day).
 - Mobile-optimized responsive layout with Day Card view for smartphone screens.
-- Customizable period timings, subject allocations, faculty assignments, and room numbers.
 - Conflict-protected slot configuration to eliminate accidental edits while scrolling.
 
-### 3. Android Native Live Class Notification
-- Native Android ongoing notification featuring hardware-accelerated `Chronometer` countdown.
-- Real-time progress bar reflecting elapsed class duration without waking the CPU or draining battery.
-- One-tap "Take Attendance" shortcut directly from the notification tray.
-
-### 4. Comprehensive Reporting & Data Export Hub
-- Export complete multi-sheet workbooks (`.xlsx`) via Excel spreadsheet engines.
-- Export clean comma-separated values (`.csv`) for individual or batch sessions.
-- Detailed inspection modal for past attendance sessions (student rosters, absentee breakdowns, and timestamps).
-- Print-optimized summary view for hard-copy submission.
-
-### 5. In-App Administrative Diagnostics & Cloud Console
-- Secure admin mode directly within the Settings portal, protected by SHA-256 passkey verification.
-- Storage quota and disk space diagnostics powered by `navigator.storage.estimate()`.
-- Real-time cloud collection inspector (Users & Classrooms) with selective record management.
-- Cryptographically signed HMAC session validation with automatic 5-minute timeout security.
-
-### 6. Battery-Efficient Background Engine & Hardware Alarms
-- Android OS `RTC_WAKEUP` exact alarm scheduling via `SessionEndReceiver`: wakes only when a period ends, allowing the device to remain in deep sleep (Doze) during class.
-- Smart foreground execution: halts polling threads when app is blurred or in the background for 0% CPU and GPU drain.
-- In-app Firebase onboarding setup wizard: configure cloud sync securely at runtime without hardcoded keys.
-- Next-Gen Google Gemini AI integration: support for Gemini 3.6 Flash and Gemini 3.8 Flash models.
+### 6. 100% Offline-First Architecture
+- Operates locally using client-side IndexedDB persistence (Dexie.js).
+- Optional end-to-end Firebase cloud backup and synchronization for multi-device coordination.
 
 ---
 
@@ -59,102 +75,19 @@ Core features operate 100% offline using client-side IndexedDB persistence, with
 |---|---|
 | **Core Framework** | React 18, TypeScript, Vite |
 | **Local Database** | Dexie.js (Client-side IndexedDB) |
-| **Styling & UI** | Tailwind CSS, Lucide Icons, Radix UI Primitives |
-| **Mobile Runtime** | Capacitor Android Native Shell |
+| **Styling & UI** | Vanilla CSS Design Tokens, Tailwind CSS, Lucide Icons |
+| **Mobile Runtime** | Capacitor Android Native Shell (Java Foreground Service) |
+| **Spreadsheet Engine** | SheetJS (Structured XML & Tabulated XLSX Generation) |
 | **Cloud Layer (Optional)** | Firebase Cloud Firestore (REST API) |
 | **AI Assistants** | Google Gemini API (v1beta/v1), Web-LLM Local Models |
-| **Analytics & Data** | Recharts, SheetJS (XLSX) |
-
----
-
-## Getting Started
-
-### Prerequisites
-- Node.js (v18.x or higher)
-- npm (v9.x or higher)
-- Android Studio / Android SDK (optional, for Android APK builds)
-
-### Installation
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/anandakrishnano-bit/Anexus_Class_Monitor.git
-   cd Anexus_Class_Monitor
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Configure environment variables:
-   ```bash
-   cp .env.example .env
-   ```
-   *Note: Cloud synchronization is optional. If left unconfigured, the application runs entirely locally via IndexedDB or can be configured directly inside the first-launch setup wizard.*
-
-4. Launch development server:
-   ```bash
-   npm run dev
-   ```
-
-5. Access the application in your browser at `http://localhost:5173`.
-
----
-
-## Environment Configuration
-
-Configuration variables are managed via Vite environment variables:
-
-| Variable | Description | Default |
-|---|---|---|
-| `VITE_FIREBASE_API_KEY` | Firebase Web API Key | `""` (Offline mode) |
-| `VITE_FIREBASE_AUTH_DOMAIN` | Firebase Auth Domain | `""` |
-| `VITE_FIREBASE_PROJECT_ID` | Google Cloud / Firebase Project ID | `""` |
-| `VITE_FIREBASE_STORAGE_BUCKET` | Cloud Storage Bucket URL | `""` |
-| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Cloud Messaging Sender ID | `""` |
-| `VITE_FIREBASE_APP_ID` | Firebase Application ID | `""` |
-| `VITE_ADMIN_PASSKEY` | Passkey for Administrative Console | `admin123` |
-
-Refer to [.env.example](.env.example) for a complete template.
-
----
-
-## Building for Production
-
-### Web Application
-```bash
-npm run build
-```
-The optimized production bundle will be output to the `dist/` directory.
-
-### Android Application (Capacitor)
-1. Build the web assets:
-   ```bash
-   npm run build
-   ```
-
-2. Sync assets with the native Android project:
-   ```bash
-   npx cap sync android
-   ```
-
-3. Open Android Studio to build and sign the APK:
-   ```bash
-   npx cap open android
-   ```
-   Or compile directly via Gradle:
-   ```bash
-   cd android && ./gradlew assembleDebug
-   ```
 
 ---
 
 ## Privacy & Security
 
-- **No Third-Party Telemetry**: The application does not embed analytics SDKs or track user identities.
+- **Zero Hardcoded Secrets**: All sensitive API keys, secrets, and credentials have been strictly audited and excluded from the repository.
+- **No Third-Party Telemetry**: The application contains no analytics tracking, spyware, or telemetry SDKs.
 - **Client-Side Encryption & Hashing**: Administrative authentication relies on browser SubtleCrypto SHA-256 digests.
-- **Zero Hardcoded Secrets**: All sensitive API keys and endpoints are externalized into environment variables.
 
 ---
 

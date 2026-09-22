@@ -173,8 +173,8 @@ export const AndroidLiveNotification: React.FC<AndroidLiveNotificationProps> = (
             <div className="w-7 h-7 rounded-full bg-neutral-100 dark:bg-[#262626] border border-neutral-200 dark:border-neutral-700 flex items-center justify-center shrink-0">
               {liveState.type === 'active' ? (
                 <span className="relative flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--accent-tertiary)] opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[var(--accent-tertiary)]" />
                 </span>
               ) : (
                 <Clock className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" />
@@ -238,7 +238,7 @@ export const AndroidLiveNotification: React.FC<AndroidLiveNotificationProps> = (
               <div className="text-left sm:text-right">
                 {liveState.type === 'active' ? (
                   <>
-                    <span className="text-sm font-black font-mono text-emerald-600 dark:text-emerald-400">
+                    <span className="text-sm font-black font-mono text-[var(--accent-tertiary)]">
                       {liveState.remainingMinutes}m remaining
                     </span>
                     <span className="text-[11px] font-semibold text-neutral-500 dark:text-neutral-400 block">
@@ -247,7 +247,7 @@ export const AndroidLiveNotification: React.FC<AndroidLiveNotificationProps> = (
                   </>
                 ) : (
                   <>
-                    <span className="text-sm font-black font-mono text-amber-600 dark:text-amber-400">
+                    <span className="text-sm font-black font-mono text-[var(--accent-tertiary)]">
                       Starts in {liveState.remainingMinutes} mins
                     </span>
                     <span className="text-[11px] font-semibold text-neutral-500 dark:text-neutral-400 block">

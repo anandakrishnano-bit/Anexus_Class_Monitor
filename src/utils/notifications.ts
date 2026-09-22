@@ -198,7 +198,7 @@ export function checkAndTriggerUpcomingAlerts(
       const title = `Upcoming Class: Period ${sched.periodNumber} (${sched.subjectCode})`;
       const msg = `Starts in ${diff} mins (${pc.startTime}) in Room ${sched.classroom || 'General'} with ${sched.facultyName || 'Faculty'}`;
       showToast(title, msg, 'info');
-      sendInstantNotification(title, msg);
+      // Single live notification automatically reflects upcoming status in notification tray
     }
   });
 

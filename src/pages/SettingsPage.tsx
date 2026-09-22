@@ -105,7 +105,8 @@ import {
   FirebaseConfig
 } from '../utils/firebaseSync';
 import { CENTRAL_FIREBASE_CONFIG, isCentralFirebaseConfigured, verifyAdminAccessCode, createAdminSessionToken } from '../config/firebaseConfig';
-import { Database, Share2, Shield } from 'lucide-react';
+import { Database, Share2, Shield, Mail, Send } from 'lucide-react';
+import { enqueueAttendanceEmail, flushPendingAttendanceEmails } from '../utils/emailDispatcher';
 
 interface SettingsPageProps {
   onOpenWalkthrough?: () => void;
@@ -144,6 +145,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenWalkthrough, o
   const [showApiKey, setShowApiKey] = useState<boolean>(false);
   const [isTestingGemini, setIsTestingGemini] = useState<boolean>(false);
 
+  // Automated Attendance Excel Emailing State
+  const [autoEmailAttendanceExcel, setAutoEmailAttendanceExcel] = useState<boolean>(currentSettings?.autoEmailAttendanceExcel ?? false);
+  const [attendanceExcelRecipients, setAttendanceExcelRecipients] = useState<string[]>(currentSettings?.attendanceExcelRecipients || []);
+  const [newRecipientInput, setNewRecipientInput] = useState<string>('');
+  const [isTestingEmail, setIsTestingEmail] = useState<boolean>(false);
+
   // Sync settings when loaded from IndexedDB
   React.useEffect(() => {
     if (currentSettings) {
@@ -157,6 +164,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenWalkthrough, o
       if (currentSettings.classReminderOffset !== undefined) setClassReminderOffset(currentSettings.classReminderOffset);
       if (currentSettings.minAttendanceTarget !== undefined) setMinAttendanceTarget(currentSettings.minAttendanceTarget);
       if (currentSettings.notificationsEnabled !== undefined) setLiveNotificationsEnabled(currentSettings.notificationsEnabled);
+      if (currentSettings.autoEmailAttendanceExcel !== undefined) setAutoEmailAttendanceExcel(currentSettings.autoEmailAttendanceExcel);
+      if (currentSettings.attendanceExcelRecipients !== undefined) setAttendanceExcelRecipients(currentSettings.attendanceExcelRecipients);
       if (currentSettings.geminiApiKey !== undefined) setGeminiApiKey(currentSettings.geminiApiKey);
       if (currentSettings.geminiModel !== undefined) setGeminiModel(currentSettings.geminiModel);
       if (currentSettings.aiProvider !== undefined) setAiProvider(currentSettings.aiProvider);
@@ -359,6 +368,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenWalkthrough, o
         minAttendanceTarget,
         summaryTemplate,
         notificationsEnabled: liveNotificationsEnabled,
+        autoEmailAttendanceExcel,
+        attendanceExcelRecipients,
         geminiApiKey: geminiApiKey.trim(),
         geminiModel,
         aiProvider,
@@ -370,7 +381,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenWalkthrough, o
         firebaseAuthDomain: firebaseAuthDomain.trim(),
         firebaseCollectionName: firebaseCollectionName.trim()
       });
-      showToast('Settings Saved', 'Metadata, Cloud Sync & Preferences updated', 'success');
+      showToast('Settings Saved', 'Metadata, Email Dispatch, Cloud Sync & Preferences updated', 'success');
     }
   };
 
@@ -391,6 +402,84 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenWalkthrough, o
     triggerHaptic('light');
     showToast('Copied Class Code', code, 'info');
     setTimeout(() => setCopiedClassCode(false), 2000);
+  };
+
+  const handleAddRecipient = () => {
+    const email = newRecipientInput.trim();
+    if (!email) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      showToast('Invalid Email', 'Please enter a valid email address (e.g. faculty@college.edu)', 'error');
+      return;
+    }
+    if (attendanceExcelRecipients.includes(email)) {
+      showToast('Duplicate Email', 'This email is already in the recipient list', 'warning');
+      return;
+    }
+    const updated = [...attendanceExcelRecipients, email];
+    setAttendanceExcelRecipients(updated);
+    setNewRecipientInput('');
+    triggerHaptic('light');
+    showToast('Recipient Added', email, 'success');
+  };
+
+  const handleRemoveRecipient = (emailToRemove: string) => {
+    triggerHaptic('light');
+    setAttendanceExcelRecipients(prev => prev.filter(e => e !== emailToRemove));
+    showToast('Recipient Removed', emailToRemove, 'info');
+  };
+
+  const handleTestEmailDispatch = async () => {
+    if (attendanceExcelRecipients.length === 0) {
+      showToast('No Recipients', 'Please add at least one recipient email address first', 'warning');
+      return;
+    }
+    setIsTestingEmail(true);
+    triggerHaptic('medium');
+    try {
+      const sampleData = {
+        date: format(new Date(), 'yyyy-MM-dd'),
+        periodNumber: 1,
+        subjectCode: 'TEST101',
+        subjectName: 'Test Subject Audit',
+        facultyName: 'Lead Professor',
+        className,
+        section,
+        department,
+        records: [
+          { registerNo: 'REG001', name: 'Student One', status: 'present' as const, remarks: 'Verified present' },
+          { registerNo: 'REG002', name: 'Student Two', status: 'absent' as const, remarks: 'Absent from lecture' },
+          { registerNo: 'REG003', name: 'Student Three', status: 'od' as const, remarks: 'College symposium' }
+        ]
+      };
+
+      const { queued } = enqueueAttendanceEmail(sampleData, {
+        ...currentSettings!,
+        autoEmailAttendanceExcel: true,
+        attendanceExcelRecipients
+      });
+
+      if (queued) {
+        if (typeof navigator !== 'undefined' && navigator.onLine) {
+          const res = await flushPendingAttendanceEmails({
+            ...currentSettings!,
+            autoEmailAttendanceExcel: true,
+            attendanceExcelRecipients
+          });
+          if (res.succeeded > 0) {
+            triggerHaptic('success');
+            showToast('Test Email Dispatched', `Sample attendance sheet sent to ${attendanceExcelRecipients.length} recipient(s)`, 'success');
+          } else {
+            showToast('Dispatch Handled', 'Queued in email dispatcher for delivery', 'info');
+          }
+        } else {
+          showToast('Queued for Email', 'Offline: Sample report queued and will send when online', 'info');
+        }
+      }
+    } catch (err: any) {
+      showToast('Test Failed', String(err?.message || err), 'error');
+    } finally {
+      setIsTestingEmail(false);
+    }
   };
 
   // Test Firebase Firestore Connection
@@ -1550,6 +1639,135 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenWalkthrough, o
             </button>
           </div>
         </div>
+      </div>
+
+      {/* AUTOMATED ATTENDANCE EXCEL EMAILING */}
+      <div className="pt-3 pb-0.5">
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-black uppercase tracking-wider text-neutral-400 dark:text-neutral-500">
+            Attendance Email Automation
+          </span>
+          <Separator className="flex-1" />
+        </div>
+      </div>
+      <div className="bg-white dark:bg-[#171717] border border-neutral-200 dark:border-neutral-800 rounded-3xl p-5 sm:p-6 shadow-sm space-y-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0 flex-1">
+            <div className="w-10 h-10 rounded-2xl bg-neutral-100 dark:bg-[#262626] flex items-center justify-center shrink-0 mt-0.5">
+              <Mail className="w-5 h-5 text-neutral-900 dark:text-white" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-sm font-extrabold text-neutral-900 dark:text-white uppercase tracking-wider">
+                  Automated Attendance Excel Emailing
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap shrink-0 bg-[var(--accent-tertiary-subtle)] border border-[var(--accent-tertiary)] text-[var(--accent-tertiary)]">
+                  Instant Dispatch
+                </span>
+              </div>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 leading-relaxed">
+                Sends the structured, color-indicated Excel (.xlsx) file directly to designated email addresses as soon as attendance is taken. If offline, the report is securely queued and dispatched automatically the moment internet connectivity is restored.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0 pt-0.5">
+            <label htmlFor="switch-auto-email" className="text-xs font-semibold text-neutral-600 dark:text-neutral-400 hidden sm:inline">
+              {autoEmailAttendanceExcel ? 'Enabled' : 'Disabled'}
+            </label>
+            <Switch
+              id="switch-auto-email"
+              checked={autoEmailAttendanceExcel}
+              onCheckedChange={checked => {
+                triggerHaptic('light');
+                setAutoEmailAttendanceExcel(checked);
+              }}
+            />
+          </div>
+        </div>
+
+        {autoEmailAttendanceExcel && (
+          <div className="space-y-4 pt-2 border-t border-neutral-100 dark:border-neutral-800/80 animate-fade-in-down">
+            <div>
+              <FieldLabel htmlFor="new-recipient-email" className="text-xs font-bold text-neutral-900 dark:text-white flex items-center gap-1.5 mb-2">
+                <Users className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" />
+                Designated Recipient Email Addresses ({attendanceExcelRecipients.length})
+              </FieldLabel>
+
+              {/* Recipient Chips List */}
+              <div className="flex flex-wrap gap-2 mb-3">
+                {attendanceExcelRecipients.length === 0 ? (
+                  <div className="text-xs text-neutral-400 italic py-2">
+                    No recipients added yet. Add email addresses below (e.g. faculty, HOD, coordinator).
+                  </div>
+                ) : (
+                  attendanceExcelRecipients.map((recEmail) => (
+                    <span
+                      key={recEmail}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-neutral-100 dark:bg-[#262626] border border-neutral-200 dark:border-neutral-700 text-neutral-800 dark:text-neutral-200 shadow-sm"
+                    >
+                      <span>{recEmail}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveRecipient(recEmail)}
+                        className="w-4 h-4 rounded-full flex items-center justify-center text-neutral-400 hover:text-red-500 hover:bg-neutral-200 dark:hover:bg-[#333333] transition-colors"
+                        title={`Remove ${recEmail}`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))
+                )}
+              </div>
+
+              {/* Add Recipient Row */}
+              <div className="flex items-center gap-2">
+                <Input
+                  id="new-recipient-email"
+                  type="email"
+                  placeholder="Enter recipient email (e.g. professor@college.edu)"
+                  value={newRecipientInput}
+                  onChange={e => setNewRecipientInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddRecipient();
+                    }
+                  }}
+                  className="flex-1 text-xs"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleAddRecipient}
+                  className="gap-1.5 text-xs font-bold shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Recipient</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Test Email Button & Save notice */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2">
+              <p className="text-[11px] text-neutral-400 font-medium">
+                Remember to tap <strong>Save Settings</strong> below to persist your recipient preferences.
+              </p>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleTestEmailDispatch}
+                disabled={isTestingEmail || attendanceExcelRecipients.length === 0}
+                className="gap-1.5 text-xs font-bold shrink-0 text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-neutral-700"
+              >
+                <Send className={`w-3.5 h-3.5 ${isTestingEmail ? 'animate-pulse' : ''}`} />
+                <span>{isTestingEmail ? 'Sending Test...' : 'Test Email Dispatch'}</span>
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* EXPORT & RESTORE BACKUP Card */}

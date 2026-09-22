@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { exportXlsxWorkbook, exportCsvFile } from '../utils/fileExport';
+import { buildStructuredCompleteWorkbook } from '../utils/excelReportGenerator';
 import { Modal } from '../components/common/Modal';
 import { Slider } from '@/components/ui/slider';
 import { Spinner, LoadingOverlay } from '@/components/ui/spinner';
@@ -52,6 +53,8 @@ export const ReportsPage: React.FC = () => {
   const subjects = useLiveQuery(() => db.subjects.toArray()) || [];
   const facultyList = useLiveQuery(() => db.faculty.toArray()) || [];
   const students = useLiveQuery(() => db.students.toArray()) || [];
+  const settingsList = useLiveQuery(() => db.settings.toArray());
+  const currentSettings = settingsList?.[0];
 
   const [subjectFilter, setSubjectFilter] = useState<string>('all');
   const [facultyFilter, setFacultyFilter] = useState<string>('all');
@@ -254,71 +257,19 @@ export const ReportsPage: React.FC = () => {
     setIsExporting(true);
     setLoadingText('Compiling Full Academic Attendance Records (.xlsx)...');
     try {
-      const workbook = XLSX.utils.book_new();
-
-      // Sheet 1: Comprehensive Student-wise Cumulative Summary
-      const studentRows = studentSummaries.map(s => ({
-        'Register No': s.student.registerNo,
-        'Student Name': s.student.name,
-        'Batch / Section': s.student.batchSection || 'General',
-        'Classes Conducted': s.totalConducted,
-        'Classes Attended': s.totalAttended,
-        'Classes Absent': s.totalAbsent,
-        'Attendance Percentage': `${s.percentage}%`,
-        'Eligibility Status': s.percentage >= 75 ? 'Eligible (>= 75%)' : 'Shortage Warning (< 75%)'
-      }));
-      const studentWs = XLSX.utils.json_to_sheet(studentRows.length > 0 ? studentRows : [
-        { 'Message': 'No student records in roster' }
-      ]);
-      XLSX.utils.book_append_sheet(workbook, studentWs, 'Student Summary');
-
-      // Sheet 2: Session-wise Cumulative Logs
-      const sessionRows: any[] = [];
-      sessions.forEach(s => {
-        const presentCount = s.records.filter(r => r.status === 'present' || r.status === 'od').length;
-        const total = s.records.length;
-        const rate = total > 0 ? ((presentCount / total) * 100).toFixed(1) : '0';
-
-        sessionRows.push({
-          'Date': s.date,
-          'Period': s.periodNumber,
-          'Subject Code': s.subjectCode,
-          'Subject Name': s.subjectName || '',
-          'Faculty': s.facultyName || '',
-          'Total Students': total,
-          'Present Count': presentCount,
-          'Absent Count': total - presentCount,
-          'Attendance Rate': `${rate}%`
-        });
-      });
-      const sessionWs = XLSX.utils.json_to_sheet(sessionRows.length > 0 ? sessionRows : [
-        { 'Message': 'No sessions recorded yet' }
-      ]);
-      XLSX.utils.book_append_sheet(workbook, sessionWs, 'Session Logs');
-
-      // Sheet 3: Individual Attendance Session Matrix
-      const detailedRows: any[] = [];
-      sessions.forEach(s => {
-        s.records.forEach(r => {
-          detailedRows.push({
-            'Date': s.date,
-            'Period': s.periodNumber,
-            'Subject Code': s.subjectCode,
-            'Faculty': s.facultyName || '',
-            'Register No': r.registerNo,
-            'Student Name': r.name,
-            'Status': (r.status || 'present').toUpperCase(),
-            'Remarks': r.remarks || ''
-          });
-        });
-      });
-      if (detailedRows.length > 0) {
-        const detailedWs = XLSX.utils.json_to_sheet(detailedRows);
-        XLSX.utils.book_append_sheet(workbook, detailedWs, 'Detailed Records');
-      }
+      const workbook = buildStructuredCompleteWorkbook(
+        students,
+        sessions,
+        subjects,
+        {
+          className: currentSettings?.className,
+          section: currentSettings?.section,
+          department: currentSettings?.department
+        }
+      );
 
       await exportXlsxWorkbook(workbook, `Class_Attendance_Complete_${new Date().toISOString().split('T')[0]}.xlsx`);
-      showToast('Export Complete', 'Saved / Shared complete attendance report (.xlsx)', 'success');
+      showToast('Export Complete', 'Saved / Shared structured attendance report (.xlsx)', 'success');
     } catch (err) {
       showToast('Export Error', String(err), 'error');
     } finally {

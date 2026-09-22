@@ -50,6 +50,7 @@ local.properties
 *.bak
 Screenshot_*/
 *.ps1
+!install.ps1
 release-apk/
 
 # Admin console & internal utilities

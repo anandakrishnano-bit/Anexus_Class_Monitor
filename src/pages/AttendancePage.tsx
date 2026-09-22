@@ -51,6 +51,8 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { format } from 'date-fns';
 import * as XLSX from 'xlsx';
 import { exportXlsxWorkbook, exportCsvFile } from '../utils/fileExport';
+import { buildStructuredSessionWorkbook } from '../utils/excelReportGenerator';
+import { enqueueAttendanceEmail, flushPendingAttendanceEmails } from '../utils/emailDispatcher';
 
 export const AttendancePage: React.FC = () => {
   const { showToast } = useNotification();
@@ -355,6 +357,47 @@ export const AttendancePage: React.FC = () => {
         });
       }
 
+      // Automated Attendance Excel Email Dispatch
+      if (currentSettings?.autoEmailAttendanceExcel && currentSettings?.attendanceExcelRecipients?.length) {
+        const sessionPayload = {
+          date: selectedDate,
+          periodNumber: selectedPeriod,
+          subjectCode: selectedSubject,
+          subjectName: currentSubjectObj?.name || selectedSubject,
+          facultyName: selectedFaculty || 'Course Faculty',
+          className: currentSettings?.className,
+          section: currentSettings?.section,
+          department: currentSettings?.department,
+          records: students.map(st => ({
+            registerNo: st.registerNo,
+            name: st.name,
+            status: statusMap[st.id!] || 'present',
+            remarks: remarksMap[st.id!] || ''
+          }))
+        };
+
+        const { queued } = enqueueAttendanceEmail(sessionPayload, currentSettings);
+        if (queued) {
+          if (typeof navigator !== 'undefined' && navigator.onLine) {
+            flushPendingAttendanceEmails(currentSettings).then(res => {
+              if (res.succeeded > 0) {
+                showToast(
+                  'Excel Report Emailed',
+                  `Dispatched to ${currentSettings.attendanceExcelRecipients?.length} recipient(s)`,
+                  'success'
+                );
+              }
+            }).catch(() => {});
+          } else {
+            showToast(
+              'Queued for Email',
+              'Offline: Attendance sheet will be emailed automatically as soon as internet reconnects',
+              'info'
+            );
+          }
+        }
+      }
+
       // Smooth processing feedback before morphing into saved state
       await new Promise(resolve => setTimeout(resolve, 500));
 
@@ -414,22 +457,25 @@ export const AttendancePage: React.FC = () => {
   // Export Excel
   const exportSessionExcel = async () => {
     try {
-      const rows = students.map(st => ({
-        'Register No': st.registerNo,
-        'Student Name': st.name,
-        'Status': (statusMap[st.id!] || 'present').toUpperCase(),
-        'Remarks': remarksMap[st.id!] || '',
-        'Date': selectedDate,
-        'Period': selectedPeriod,
-        'Subject Code': selectedSubject,
-        'Subject Name': selectedSubjectObj?.name || selectedSubject,
-        'Faculty': selectedFaculty || 'Faculty'
-      }));
-      const worksheet = XLSX.utils.json_to_sheet(rows);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, `Period_${selectedPeriod}`);
+      const workbook = buildStructuredSessionWorkbook({
+        date: selectedDate,
+        periodNumber: selectedPeriod,
+        subjectCode: selectedSubject,
+        subjectName: selectedSubjectObj?.name || selectedSubject,
+        facultyName: selectedFaculty || 'Course Faculty',
+        className: currentSettings?.className,
+        section: currentSettings?.section,
+        department: currentSettings?.department,
+        records: students.map(st => ({
+          registerNo: st.registerNo,
+          name: st.name,
+          status: statusMap[st.id!] || 'present',
+          remarks: remarksMap[st.id!] || ''
+        }))
+      });
+
       await exportXlsxWorkbook(workbook, `Attendance_P${selectedPeriod}_${selectedSubject}_${selectedDate}.xlsx`);
-      showToast('Exported Attendance Excel', `Exported ${rows.length} student records`, 'success');
+      showToast('Exported Attendance Excel', `Saved formatted audit sheet for ${students.length} students`, 'success');
     } catch (err) {
       showToast('Export Error', String(err), 'error');
     }

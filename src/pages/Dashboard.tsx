@@ -6,7 +6,7 @@ import { useNotification } from '../context/NotificationContext';
 import { triggerHaptic } from '../utils/haptics';
 import { getStreakData } from '../utils/streak';
 import { generateDailySchedulePlan } from '../utils/smartAi';
-import { scheduleClassStart10MinReminder, sendInstantNotification } from '../utils/notifications';
+import { sendInstantNotification } from '../utils/notifications';
 import { TasksModal } from '../components/common/TasksModal';
 import { AndroidLiveNotification } from '../components/common/AndroidLiveNotification';
 import { BroadcastTicker } from '../components/common/BroadcastTicker';
@@ -182,21 +182,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
     return generateDailySchedulePlan(todaySchedules, pendingTasks, streakData.currentStreak);
   }, [todaySchedules, pendingTasks, streakData]);
 
-  // Auto-schedule 10-Minute Class Reminders for today's classes
-  useEffect(() => {
-    todaySchedules.forEach(item => {
-      const pc = periodConfigs.find(p => p.periodNumber === item.periodNumber);
-      if (pc && pc.startTime) {
-        scheduleClassStart10MinReminder(
-          item.periodNumber,
-          item.subjectCode,
-          pc.startTime,
-          item.classroom,
-          item.facultyName
-        );
-      }
-    });
-  }, [todaySchedules, periodConfigs]);
+  // Ongoing Live Class Notification handles all real-time class activity and upcoming countdowns exclusively.
 
   const toggleTaskCompleted = async (task: HomeworkItem) => {
     triggerHaptic('success');
@@ -285,11 +271,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
             <div className="flex flex-wrap items-center gap-2.5">
               {/* STATUS BADGE */}
               {isHoliday ? (
-                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-500 text-white text-xs font-black shadow-md shadow-amber-500/30">
+                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[var(--accent-tertiary)] text-white text-xs font-black shadow-md shadow-[var(--accent-tertiary-glow)]">
                   <Umbrella className="w-4 h-4" /> OFFICIAL HOLIDAY ({todayHoliday?.title?.toUpperCase() || 'INSTITUTIONAL BREAK'})
                 </span>
               ) : statusType === 'active' && heroSchedule ? (
-                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-500 text-white text-xs font-black shadow-md shadow-emerald-500/30 animate-pulse">
+                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[var(--accent-tertiary)] text-white text-xs font-black shadow-md shadow-[var(--accent-tertiary-glow)] animate-pulse">
                   <Radio className="w-4 h-4" /> ACTIVE NOW (Period {heroSchedule.periodNumber})
                 </span>
               ) : statusType === 'upcoming' && heroSchedule ? (
@@ -311,8 +297,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
                 title={isHoliday ? "Click to resume regular classes for today" : "Click to mark today as a holiday"}
                 className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-xs font-bold transition-all duration-200 active:scale-95 ${
                   isHoliday
-                    ? 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 hover:bg-amber-100'
-                    : 'border-red-200 dark:border-red-900/60 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/60'
+                    ? 'border-[var(--accent-tertiary)] bg-[var(--accent-tertiary-subtle)] text-[var(--accent-tertiary)] hover:opacity-90'
+                    : 'border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-[#262626] text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-[#333333]'
                 }`}
               >
                 <Umbrella className="w-3.5 h-3.5" /> {isHoliday ? 'Holiday Active (Unmark)' : 'Mark Holiday'}
@@ -471,7 +457,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
         </div>
 
         <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-          {aiDayPlan.blocks.map((block, idx) => (
+          {aiDayPlan.blocks.map((block: any, idx: number) => (
             <div
               key={idx}
               className="p-3.5 rounded-2xl bg-neutral-50 dark:bg-[#262626] border border-neutral-200 dark:border-neutral-700 flex items-start justify-between gap-3 text-xs hover:border-neutral-400 dark:hover:border-neutral-600 transition-all duration-200"
@@ -543,7 +529,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
                       onClick={() => toggleTaskCompleted(task)}
                       className="w-6 h-6 rounded-lg border border-neutral-300 dark:border-neutral-600 hover:border-neutral-900 dark:hover:border-white hover:scale-110 active:scale-95 flex items-center justify-center shrink-0 transition-all"
                     >
-                      {task.isCompleted && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
+                      {task.isCompleted && <CheckCircle2 className="w-4 h-4 text-[var(--accent-tertiary)]" />}
                     </button>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
@@ -592,7 +578,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
           <div className="py-8 text-center text-xs text-neutral-400 italic bg-neutral-50 dark:bg-[#262626] rounded-2xl flex flex-col items-center justify-center gap-1.5 px-4">
             {isHoliday ? (
               <>
-                <span className="font-bold text-amber-600 dark:text-amber-400 not-italic text-sm">
+                <span className="font-bold text-[var(--accent-tertiary)] not-italic text-sm">
                   Today is an Official Holiday ({todayHoliday?.title || 'Institutional Holiday'})
                 </span>
                 <span>Timetable classes and lecture sessions are paused for the day.</span>
@@ -628,7 +614,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
                   key={item.id}
                   className={`p-4 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all duration-200 hover:scale-[1.01] ${
                     isPeriodActiveNow
-                      ? 'bg-emerald-500/10 border-emerald-500/50 shadow-md shadow-emerald-500/10'
+                      ? 'bg-[var(--accent-tertiary-subtle)] border-[var(--accent-tertiary)] shadow-md shadow-[var(--accent-tertiary-glow)]'
                       : isPeriodUpcoming10Mins
                       ? 'bg-neutral-100 dark:bg-[#262626] border-neutral-400 dark:border-neutral-600 shadow-md'
                       : 'bg-neutral-50 dark:bg-[#262626] border-neutral-200 dark:border-neutral-700'
@@ -647,7 +633,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
                           {sub ? sub.name : item.subjectCode}
                         </h4>
                         {isPeriodActiveNow && (
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-black uppercase shadow-sm flex items-center gap-1 animate-pulse">
+                          <span className="px-2 py-0.5 rounded-full bg-[var(--accent-tertiary)] text-white text-[10px] font-black uppercase shadow-sm flex items-center gap-1 animate-pulse">
                             <Radio className="w-3 h-3" /> Active Now
                           </span>
                         )}

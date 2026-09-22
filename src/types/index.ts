@@ -118,6 +118,14 @@ export interface AppSettings {
   firebaseClassCode?: string;
   firebaseAutoSync?: boolean;
   lastFirebaseSyncAt?: string;
+  autoEmailAttendanceExcel?: boolean;
+  attendanceExcelRecipients?: string[];
+  emailServiceConfig?: {
+    provider?: 'resend' | 'customWebhook';
+    apiKey?: string;
+    endpoint?: string;
+    fromEmail?: string;
+  };
 }
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
