@@ -37,8 +37,10 @@
 
   /* ========================================================
      THEME PALETTE SYSTEM (LIGHT & DARK DUAL MAPPING)
-     - White mode: primary replaces blacks, secondary replaces greys, background is muted
-     - Dark mode: primary replaces whites, secondary replaces light-greys, OLED dark surface
+     - White mode: background is muted colour, foreground things are crisp white (#FFFFFF),
+       primary replaces blacks, secondary replaces greys
+     - Dark mode: background is solid black (#000000), elevated dark surfaces,
+       primary replaces whites with luminous tone
      ======================================================== */
   :root {
     --theme-bg: #FFF0F3;
@@ -53,21 +55,28 @@
   }
 
   .dark {
-    --theme-bg: #0F0A0D;
-    --theme-surface: #1A1216;
+    --theme-bg: #000000;
+    --bg-app: #000000;
+    --theme-surface: #121212;
     --theme-primary: #F9CAD2;
     --theme-primary-text: #881337;
     --theme-secondary: #FDA4AF;
-    --theme-secondary-bg: #2B151F;
-    --theme-border: #421D2C;
+    --theme-secondary-bg: #1E1418;
+    --theme-border: #331D26;
     --theme-muted: #D4A5B3;
     --theme-accent: #FB7185;
   }
 
   /* --- LIGHT (WHITE) MODE ADAPTATION --- */
+  html:not(.dark),
   :root:not(.dark) body,
   :root:not(.dark) .bg-\[\#FAFAFA\] {
     background-color: var(--theme-bg, #FFF0F3) !important;
+  }
+
+  /* Foreground things in light mode are clean white */
+  :root:not(.dark) .bg-white {
+    background-color: #FFFFFF !important;
   }
 
   /* Primary colors given to black in white mode */
@@ -113,15 +122,19 @@
     color: var(--theme-secondary, #BE185D) !important;
   }
 
-  /* --- DARK MODE ADAPTATION --- */
+  /* --- DARK MODE ADAPTATION (SOLID BLACK OLED BACKGROUND) --- */
+  html.dark,
+  html.dark body,
   .dark body,
   .dark .bg-\[\#0A0A0A\],
-  .dark .dark\:bg-\[\#0A0A0A\] {
-    background-color: var(--theme-bg, #0A0A0A) !important;
+  .dark .dark\:bg-\[\#0A0A0A\],
+  .dark .dark\:bg-black,
+  .dark .bg-black {
+    background-color: #000000 !important;
   }
 
   .dark .dark\:bg-\[\#171717\] {
-    background-color: var(--theme-surface, #171717) !important;
+    background-color: var(--theme-surface, #121212) !important;
   }
 
   /* Primary colors given to whites in dark mode */
@@ -148,12 +161,12 @@
   /* Secondary & tertiary in dark mode */
   .dark .dark\:bg-neutral-800,
   .dark .dark\:bg-\[\#262626\] {
-    background-color: var(--theme-secondary-bg, #262626) !important;
+    background-color: var(--theme-secondary-bg, #1C1C1E) !important;
   }
 
   .dark .dark\:border-neutral-800,
   .dark .dark\:border-neutral-700 {
-    border-color: var(--theme-border, #2E2E2E) !important;
+    border-color: var(--theme-border, #282828) !important;
   }
 
   .dark .dark\:text-neutral-400,

@@ -89,7 +89,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab })
         }`}
         ref={moreRef}
       >
-        <div className="bg-white dark:bg-[#0A0A0A] border-t border-neutral-200/80 dark:border-neutral-800 px-3 pt-2 pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)] shadow-[0_-4px_20px_rgba(0,0,0,0.06)] relative z-40">
+        <div className="bg-white dark:bg-black border-t border-neutral-200/80 dark:border-neutral-800 px-3 pt-2 pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)] shadow-[0_-4px_20px_rgba(0,0,0,0.06)] relative z-40">
           {/* More menu popup with expanding spring animation */}
           {isMoreOpen && (
             <div className="absolute bottom-full right-3 pb-2 w-56 max-w-[85vw] more-menu-expand z-50">

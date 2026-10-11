@@ -168,7 +168,7 @@ export const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
         dir={dir}
         className={cn(
           "group/sidebar hidden md:flex flex-col shrink-0 sticky top-16 h-[calc(100vh-4rem)] z-20",
-          "border-r border-neutral-200/80 dark:border-neutral-800 bg-white/80 dark:bg-[#0A0A0A]/80 backdrop-blur-md",
+          "border-r border-neutral-200/80 dark:border-neutral-800 bg-white/90 dark:bg-black/90 backdrop-blur-md",
           "transition-[width] duration-300 ease-in-out select-none",
           open ? "w-64" : collapsible === "icon" ? "w-[4.5rem]" : "w-0 overflow-hidden",
           className

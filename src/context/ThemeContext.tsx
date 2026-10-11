@@ -1,6 +1,11 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { db } from '../db';
-import { fetchMaterialYouColors, applyMaterialYouToCssVariables } from '../utils/materialYouTheme';
+import {
+  fetchMaterialYouColors,
+  applyMaterialYouToCssVariables,
+  buildDynamicMaterialYouPalette,
+  MaterialYouColors
+} from '../utils/materialYouTheme';
 
 export type Theme = 'light' | 'dark' | 'system';
 
@@ -32,6 +37,39 @@ export interface ThemePalette {
 
 export const THEME_PALETTES: ThemePalette[] = [
   {
+    id: 'material_you',
+    name: 'Material Dynamic',
+    previewColor: '#6366F1',
+    baseColor: 'material_you',
+    bg: '#EEF2FF',
+    surface: '#FFFFFF',
+    secondary: '#D97706',
+    border: '#C7D2FE',
+    mutedText: '#4F46E5',
+    light: {
+      bg: '#EEF2FF',
+      surface: '#FFFFFF',
+      primary: '#312E81',
+      primaryText: '#FFFFFF',
+      secondary: '#B45309',
+      secondaryBg: '#FEF3C7',
+      border: '#C7D2FE',
+      muted: '#4F46E5',
+      accent: '#D97706',
+    },
+    dark: {
+      bg: '#000000',
+      surface: '#121212',
+      primary: '#A5B4FC',
+      primaryText: '#1E1B4B',
+      secondary: '#FDE68A',
+      secondaryBg: '#1A1828',
+      border: '#2C2746',
+      muted: '#9CA3AF',
+      accent: '#FBBF24',
+    }
+  },
+  {
     id: 'pink',
     name: 'Blush Rose',
     previewColor: '#F9CAD2',
@@ -53,13 +91,13 @@ export const THEME_PALETTES: ThemePalette[] = [
       accent: '#E11D48',
     },
     dark: {
-      bg: '#0F0A0D',
-      surface: '#1A1216',
+      bg: '#000000',
+      surface: '#121212',
       primary: '#F9CAD2', // luminous blush pink replacing white
       primaryText: '#881337',
       secondary: '#FDA4AF',
-      secondaryBg: '#2B151F',
-      border: '#421D2C',
+      secondaryBg: '#1E1418',
+      border: '#331D26',
       muted: '#D4A5B3',
       accent: '#FB7185',
     }
@@ -86,13 +124,13 @@ export const THEME_PALETTES: ThemePalette[] = [
       accent: '#D97706',
     },
     dark: {
-      bg: '#0E0D08',
-      surface: '#1A1810',
+      bg: '#000000',
+      surface: '#121212',
       primary: '#F9DA41', // luminous sunshine gold replacing white
       primaryText: '#78350F',
       secondary: '#FDE047',
-      secondaryBg: '#2D2611',
-      border: '#443916',
+      secondaryBg: '#1E1A10',
+      border: '#332C15',
       muted: '#D6C782',
       accent: '#FACC15',
     }
@@ -119,13 +157,13 @@ export const THEME_PALETTES: ThemePalette[] = [
       accent: '#7C3AED',
     },
     dark: {
-      bg: '#0D0A14',
-      surface: '#171324',
+      bg: '#000000',
+      surface: '#121212',
       primary: '#DED2F9', // luminous lilac replacing white
       primaryText: '#4C1D95',
       secondary: '#C4B5FD',
-      secondaryBg: '#271E40',
-      border: '#3B2D62',
+      secondaryBg: '#1B1524',
+      border: '#2E2240',
       muted: '#B8A9D9',
       accent: '#A78BFA',
     }
@@ -152,13 +190,13 @@ export const THEME_PALETTES: ThemePalette[] = [
       accent: '#059669',
     },
     dark: {
-      bg: '#080F0C',
-      surface: '#111C16',
+      bg: '#000000',
+      surface: '#121212',
       primary: '#A7F3D0', // luminous mint replacing white
       primaryText: '#064E3B',
       secondary: '#6EE7B7',
-      secondaryBg: '#182E22',
-      border: '#244735',
+      secondaryBg: '#121F17',
+      border: '#1F3628',
       muted: '#88C4A9',
       accent: '#34D399',
     }
@@ -185,13 +223,13 @@ export const THEME_PALETTES: ThemePalette[] = [
       accent: '#0284C7',
     },
     dark: {
-      bg: '#080D12',
-      surface: '#101822',
+      bg: '#000000',
+      surface: '#121212',
       primary: '#BAE6FD', // luminous sky blue replacing white
       primaryText: '#0C4A6E',
       secondary: '#7DD3FC',
-      secondaryBg: '#172A3C',
-      border: '#22405C',
+      secondaryBg: '#121B24',
+      border: '#1E2F40',
       muted: '#89B9D8',
       accent: '#38BDF8',
     }
@@ -218,13 +256,13 @@ export const THEME_PALETTES: ThemePalette[] = [
       accent: '#EA580C',
     },
     dark: {
-      bg: '#120A07',
-      surface: '#1F130E',
+      bg: '#000000',
+      surface: '#121212',
       primary: '#FED7AA', // luminous warm peach replacing white
       primaryText: '#7C2D12',
       secondary: '#FDBA74',
-      secondaryBg: '#331D14',
-      border: '#4D2C1E',
+      secondaryBg: '#211612',
+      border: '#38251E',
       muted: '#D4A286',
       accent: '#FB923C',
     }
@@ -251,13 +289,13 @@ export const THEME_PALETTES: ThemePalette[] = [
       accent: '#7C3AED',
     },
     dark: {
-      bg: '#0A0A0A',
-      surface: '#171717',
+      bg: '#000000',
+      surface: '#121212',
       primary: '#EDEDED',
       primaryText: '#0A0A0A',
       secondary: '#A1A1A1',
-      secondaryBg: '#262626',
-      border: '#2E2E2E',
+      secondaryBg: '#1C1C1E',
+      border: '#282828',
       muted: '#737373',
       accent: '#A78BFA',
     }
@@ -267,9 +305,18 @@ export const THEME_PALETTES: ThemePalette[] = [
 // Alias for backwards compatibility
 export const TINT_PRESETS = THEME_PALETTES;
 
-export function resolveThemePalette(colorOrId: string): ThemePalette {
+export function resolveThemePalette(colorOrId: string, systemColors?: MaterialYouColors | null): ThemePalette {
   if (!colorOrId) return THEME_PALETTES[0];
   const query = colorOrId.toLowerCase();
+
+  if (query === 'material_you' || query === 'system' || query === 'material') {
+    if (systemColors) {
+      return buildDynamicMaterialYouPalette(systemColors);
+    }
+    const match = THEME_PALETTES.find(p => p.id === 'material_you');
+    if (match) return match;
+  }
+
   const match = THEME_PALETTES.find(
     p => p.id.toLowerCase() === query ||
          p.previewColor.toLowerCase() === query ||
@@ -300,13 +347,13 @@ export function resolveThemePalette(colorOrId: string): ThemePalette {
       accent: colorOrId,
     },
     dark: {
-      bg: '#0A0A0A',
-      surface: '#171717',
+      bg: '#000000',
+      surface: '#121212',
       primary: colorOrId,
       primaryText: '#0A0A0A',
       secondary: `${colorOrId}CC`,
-      secondaryBg: '#262626',
-      border: '#333333',
+      secondaryBg: '#1A1A1A',
+      border: '#282828',
       muted: '#A1A1A1',
       accent: colorOrId,
     }
@@ -339,6 +386,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [theme, setThemeState] = useState<Theme>('system');
   const [tintColor, setTintColorState] = useState<string>('#F9CAD2');
   const [tertiaryColor, setTertiaryColor] = useState<string>('#7C3AED');
+  const [systemColors, setSystemColors] = useState<MaterialYouColors | null>(null);
   const [isDark, setIsDark] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       return document.documentElement.classList.contains('dark') ||
@@ -347,7 +395,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return false;
   });
 
-  const activePalette = resolveThemePalette(tintColor);
+  const activePalette = resolveThemePalette(tintColor, systemColors);
 
   const applyPaletteToDOM = useCallback((palette: ThemePalette, darkActive: boolean) => {
     if (typeof document === 'undefined') return;
@@ -398,11 +446,14 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     // Load Material You system colors
     fetchMaterialYouColors().then(colors => {
-      if (colors && colors.tertiary) {
-        setTertiaryColor(colors.tertiary);
-        const currentDark = document.documentElement.classList.contains('dark') ||
-          window.matchMedia('(prefers-color-scheme: dark)').matches;
-        applyMaterialYouToCssVariables(colors, currentDark);
+      if (colors) {
+        setSystemColors(colors);
+        if (colors.tertiary) {
+          setTertiaryColor(colors.tertiary);
+          const currentDark = document.documentElement.classList.contains('dark') ||
+            window.matchMedia('(prefers-color-scheme: dark)').matches;
+          applyMaterialYouToCssVariables(colors, currentDark);
+        }
       }
     });
   }, []);
@@ -423,7 +474,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       root.classList.remove('dark');
     }
 
-    const currentPalette = resolveThemePalette(tintColor);
+    const currentPalette = resolveThemePalette(tintColor, systemColors);
     applyPaletteToDOM(currentPalette, activeDark);
 
     // Refresh dynamic tertiary color tokens when theme changes
@@ -447,7 +498,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
-  }, [theme, tintColor, computeIsDark, applyPaletteToDOM]);
+  }, [theme, tintColor, systemColors, computeIsDark, applyPaletteToDOM]);
 
   const saveThemeToDb = async (newTheme: Theme, newTintColor?: string) => {
     const settings = await db.settings.toArray();
@@ -486,7 +537,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       localStorage.setItem('__user_tint_color', color);
     } catch {}
     await saveThemeToDb(theme, color);
-    const palette = resolveThemePalette(color);
+    const palette = resolveThemePalette(color, systemColors);
     applyPaletteToDOM(palette, isDark);
   };
 
@@ -522,7 +573,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       } else {
         document.documentElement.classList.remove('dark');
       }
-      const palette = resolveThemePalette(tintColor);
+      const palette = resolveThemePalette(tintColor, systemColors);
       applyPaletteToDOM(palette, willBeDark);
       saveThemeToDb(nextTheme);
     };

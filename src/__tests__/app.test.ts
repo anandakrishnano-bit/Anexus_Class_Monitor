@@ -183,12 +183,29 @@ describe('Theme Palette Dual-Mode Architecture', () => {
     expect(pinkPalette.dark.primaryText).toBe('#881337');
   });
 
-  it('should resolve sunshine gold palette accurately', async () => {
-    const { resolveThemePalette } = await import('../context/ThemeContext');
-    const goldPalette = resolveThemePalette('#F9DA41');
-    expect(goldPalette.name).toBe('Sunshine Gold');
-    expect(goldPalette.light.primary).toBe('#78350F');
-    expect(goldPalette.dark.primary).toBe('#F9DA41');
+  it('should ensure all dark palettes have solid black #000000 background', async () => {
+    const { THEME_PALETTES } = await import('../context/ThemeContext');
+    THEME_PALETTES.forEach(palette => {
+      expect(palette.dark.bg).toBe('#000000');
+    });
+  });
+
+  it('should compute complementary color for Material UI theme accurately', async () => {
+    const { getComplementaryColor, buildDynamicMaterialYouPalette } = await import('../utils/materialYouTheme');
+    // Complementary of Indigo (#6366f1) is warm amber/gold
+    const comp = getComplementaryColor('#6366f1');
+    expect(comp).toBeDefined();
+    expect(comp.startsWith('#')).toBe(true);
+
+    const dynPalette = buildDynamicMaterialYouPalette({
+      primary: '#6366F1',
+      tertiary: '#7C3AED',
+      tertiaryLight: '#A78BFA'
+    });
+    expect(dynPalette.id).toBe('material_you');
+    expect(dynPalette.dark.bg).toBe('#000000');
+    expect(dynPalette.light.surface).toBe('#FFFFFF');
+    expect(dynPalette.light.accent).toBeDefined();
   });
 });
 

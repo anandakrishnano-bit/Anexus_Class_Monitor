@@ -1380,10 +1380,11 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenWalkthrough, o
               Applied in Light & Dark modes
             </span>
           </div>
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2">
             {TINT_PRESETS.map(preset => {
               const isCurrent = tintColor.toLowerCase() === preset.baseColor.toLowerCase() ||
                                 tintColor.toLowerCase() === preset.id.toLowerCase();
+              const isMaterialYou = preset.id === 'material_you';
               return (
                 <button
                   key={preset.id}
@@ -1400,10 +1401,14 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenWalkthrough, o
                   style={{ backgroundColor: preset.bg }}
                 >
                   <span
-                    className="w-5 h-5 rounded-full border border-black/10 shadow-sm shrink-0 flex items-center justify-center"
-                    style={{ backgroundColor: preset.previewColor || preset.baseColor }}
+                    className="w-5 h-5 rounded-full border border-black/10 shadow-sm shrink-0 flex items-center justify-center relative overflow-hidden"
+                    style={{
+                      background: isMaterialYou
+                        ? 'linear-gradient(135deg, #6366F1, #D97706)'
+                        : (preset.previewColor || preset.baseColor)
+                    }}
                   >
-                    {isCurrent && <Check className="w-3 h-3 text-neutral-900" />}
+                    {isCurrent && <Check className="w-3 h-3 text-white drop-shadow-sm" />}
                   </span>
                   <span className="text-[10px] font-bold text-neutral-800 line-clamp-1">
                     {preset.name}
@@ -1413,7 +1418,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenWalkthrough, o
             })}
           </div>
           <p className="text-[11px] text-neutral-400 leading-tight">
-            In White mode, your palette styles blacks and key accents with a muted soft background. In Dark mode, it dyes whites and highlights with luminous theme color.
+            In White mode, the background is a muted colour with crisp white foreground surfaces. In Dark mode, the background is solid black with luminous theme highlights. <strong>Material Dynamic</strong> automatically extracts your OS system wallpaper color with harmonious complementary accents.
           </p>
         </div>
       </div>

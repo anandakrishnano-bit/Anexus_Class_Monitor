@@ -154,7 +154,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
 
   return (
     <header
-      className={`sticky top-0 z-30 w-full bg-[#FAFAFA]/95 dark:bg-[#0A0A0A]/95 backdrop-blur-md px-3.5 sm:px-6 lg:px-8 border-neutral-200/80 dark:border-neutral-800 transition-all duration-500 ease-in-out ${
+      className={`sticky top-0 z-30 w-full bg-white/95 dark:bg-black/95 backdrop-blur-md px-3.5 sm:px-6 lg:px-8 border-neutral-200/80 dark:border-neutral-800 transition-all duration-500 ease-in-out ${
         isAttendance
           ? '-translate-y-full opacity-0 pointer-events-none max-h-0 py-0 border-b-transparent overflow-hidden'
           : 'translate-y-0 opacity-100 max-h-28 pt-[calc(env(safe-area-inset-top,0px)+0.5rem)] pb-2.5 sm:pb-3 border-b border-b-neutral-200/80 dark:border-b-neutral-800'

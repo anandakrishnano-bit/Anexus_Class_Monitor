@@ -174,7 +174,7 @@ export const AppContent: React.FC = () => {
 
   return (
     <SidebarProvider defaultOpen={true}>
-      <div className="h-[100dvh] max-h-[100dvh] bg-[#FAFAFA] dark:bg-[#0A0A0A] text-neutral-900 dark:text-neutral-100 flex flex-col font-sans relative w-full overflow-hidden">
+      <div className="h-[100dvh] max-h-[100dvh] bg-[#FAFAFA] dark:bg-black text-neutral-900 dark:text-neutral-100 flex flex-col font-sans relative w-full overflow-hidden">
         {/* Splash Animation on App Open */}
         {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
 
