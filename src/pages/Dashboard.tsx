@@ -5,10 +5,10 @@ import { HomeworkItem, ScheduleItem, PeriodConfig, Subject } from '../types';
 import { useNotification } from '../context/NotificationContext';
 import { triggerHaptic } from '../utils/haptics';
 import { getStreakData } from '../utils/streak';
-import { generateDailySchedulePlan } from '../utils/smartAi';
 import { sendInstantNotification } from '../utils/notifications';
 import { TasksModal } from '../components/common/TasksModal';
 import { AndroidLiveNotification } from '../components/common/AndroidLiveNotification';
+import { isAndroid } from '../utils/platform';
 import { BroadcastTicker } from '../components/common/BroadcastTicker';
 import {
   Clock,
@@ -177,10 +177,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
       .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
   }, [tasks]);
 
-  // AI Daily Schedule Plan
-  const aiDayPlan = useMemo(() => {
-    return generateDailySchedulePlan(todaySchedules, pendingTasks, streakData.currentStreak);
-  }, [todaySchedules, pendingTasks, streakData]);
+
 
   // Ongoing Live Class Notification handles all real-time class activity and upcoming countdowns exclusively.
 
@@ -237,32 +234,34 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
       {/* Flame Activity Streak & Summary Bar */}
       <div className="flex items-center justify-between gap-3 p-4 rounded-3xl bg-white dark:bg-[#171717] border border-neutral-200 dark:border-neutral-800 shadow-sm backdrop-blur-sm card-interactive animate-scale-in">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 flex items-center justify-center shadow-md shrink-0">
-            <Flame className="w-5 h-5" />
+          <div className="w-10 h-10 rounded-2xl bg-amber-500/15 dark:bg-amber-500/20 border border-amber-500/30 text-amber-500 flex items-center justify-center shadow-sm shrink-0">
+            <Flame className="w-5 h-5 text-amber-500 fill-amber-500 animate-pulse" />
           </div>
           <div>
             <span className="text-sm font-black text-neutral-900 dark:text-white flex items-center gap-1.5">
-              {streakData.currentStreak}-Day Activity Streak
+              <span className="text-amber-500 dark:text-amber-400 font-extrabold">{streakData.currentStreak}-Day</span> Activity Streak
             </span>
             <span className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 block mt-0.5">
-              Best: {streakData.bestStreak} Days • Keep logging attendance daily
+              Best: <span className="text-neutral-800 dark:text-neutral-200 font-bold">{streakData.bestStreak} Days</span> • Keep logging attendance daily
             </span>
           </div>
         </div>
 
         <button
           onClick={() => setActiveTab('reports')}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-neutral-100 dark:bg-[#262626] text-neutral-800 dark:text-neutral-200 border border-neutral-200 dark:border-neutral-700 text-xs font-bold shadow-sm hover:bg-neutral-200 dark:hover:bg-[#333333] hover:scale-105 active:scale-95 transition-all shrink-0"
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-neutral-100 dark:bg-neutral-800/80 text-neutral-800 dark:text-neutral-200 border border-neutral-200 dark:border-neutral-700/80 text-xs font-bold shadow-sm hover:bg-neutral-200 dark:hover:bg-neutral-700 hover:scale-105 active:scale-95 transition-all shrink-0"
         >
-          <Calendar className="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-300" /> View History
+          <Calendar className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" /> View History
         </button>
       </div>
 
-      {/* REAL-TIME LIVE PROGRESS & CLASS ACTIVITY (DASHBOARD PROGRESS) */}
-      <AndroidLiveNotification
-        onNavigateToAttendance={(period) => setActiveTab('attendance')}
-        onNavigateToSchedule={() => setActiveTab('schedule')}
-      />
+      {/* REAL-TIME LIVE PROGRESS & CLASS ACTIVITY (ANDROID MOBILE ONLY) */}
+      {isAndroid() && (
+        <AndroidLiveNotification
+          onNavigateToAttendance={(period) => setActiveTab('attendance')}
+          onNavigateToSchedule={() => setActiveTab('schedule')}
+        />
+      )}
 
       {/* REAL-TIME ACTIVE NOW & UPCOMING CLASS HERO BANNER */}
       <div className="bg-white dark:bg-[#171717] border border-neutral-200 dark:border-neutral-800 rounded-3xl p-6 sm:p-7 shadow-sm relative overflow-hidden card-interactive">
@@ -271,37 +270,44 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
             <div className="flex flex-wrap items-center gap-2.5">
               {/* STATUS BADGE */}
               {isHoliday ? (
-                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[var(--accent-tertiary)] text-white text-xs font-black shadow-md shadow-[var(--accent-tertiary-glow)]">
-                  <Umbrella className="w-4 h-4" /> OFFICIAL HOLIDAY ({todayHoliday?.title?.toUpperCase() || 'INSTITUTIONAL BREAK'})
+                <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/35 text-amber-700 dark:text-amber-300 text-xs font-black shadow-sm">
+                  <Umbrella className="w-4 h-4 text-amber-500" /> OFFICIAL HOLIDAY ({todayHoliday?.title?.toUpperCase() || 'BREAK'})
                 </span>
               ) : statusType === 'active' && heroSchedule ? (
-                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[var(--accent-tertiary)] text-white text-xs font-black shadow-md shadow-[var(--accent-tertiary-glow)] animate-pulse">
-                  <Radio className="w-4 h-4" /> ACTIVE NOW (Period {heroSchedule.periodNumber})
+                <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/35 text-emerald-700 dark:text-emerald-300 text-xs font-black shadow-sm">
+                  <Radio className="w-4 h-4 text-emerald-500 animate-pulse" /> ACTIVE NOW (Period {heroSchedule.periodNumber})
                 </span>
               ) : statusType === 'upcoming' && heroSchedule ? (
-                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-xs font-black shadow-md animate-pulse">
-                  <Clock className="w-4 h-4" /> UPCOMING IN {upcomingItem?.minsLeft} MINS (Period {heroSchedule.periodNumber})
+                <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/15 border border-blue-500/35 text-blue-700 dark:text-blue-300 text-xs font-black shadow-sm">
+                  <Clock className="w-4 h-4 text-blue-500 animate-pulse" /> UPCOMING IN {upcomingItem?.minsLeft} MINS (Period {heroSchedule.periodNumber})
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-neutral-100 dark:bg-[#262626] text-neutral-700 dark:text-neutral-300 text-xs font-bold">
-                  <Clock className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" /> Standby • No Active Class
+                <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-bold shadow-sm">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
+                  <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" /> Standby • No Active Class
                 </span>
               )}
 
-              <span className="px-3.5 py-1.5 rounded-full bg-neutral-100 dark:bg-[#262626] text-neutral-700 dark:text-neutral-300 text-xs font-bold">
-                {format(currentTime, 'EEE, dd MMM • HH:mm:ss')}
+              {/* LIVE TIME BADGE */}
+              <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-500/10 dark:bg-sky-500/15 border border-sky-500/30 text-sky-800 dark:text-sky-200 text-xs font-semibold shadow-sm">
+                <Calendar className="w-3.5 h-3.5 text-sky-500 dark:text-sky-400" />
+                <span>{format(currentTime, 'EEE, dd MMM')}</span>
+                <span className="text-sky-400 dark:text-sky-500">•</span>
+                <span className="font-mono font-bold text-sky-700 dark:text-sky-300">{format(currentTime, 'HH:mm:ss')}</span>
               </span>
 
+              {/* MARK HOLIDAY TOGGLE BUTTON */}
               <button
                 onClick={toggleTodayHoliday}
                 title={isHoliday ? "Click to resume regular classes for today" : "Click to mark today as a holiday"}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-xs font-bold transition-all duration-200 active:scale-95 ${
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-xs font-bold transition-all duration-200 active:scale-95 shadow-sm ${
                   isHoliday
-                    ? 'border-[var(--accent-tertiary)] bg-[var(--accent-tertiary-subtle)] text-[var(--accent-tertiary)] hover:opacity-90'
-                    : 'border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-[#262626] text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-[#333333]'
+                    ? 'border-amber-500/40 bg-amber-500/20 text-amber-700 dark:text-amber-300 hover:bg-amber-500/30'
+                    : 'border-neutral-200 dark:border-neutral-700 bg-neutral-100/80 dark:bg-neutral-800/80 text-neutral-700 dark:text-neutral-300 hover:bg-rose-500/10 hover:border-rose-500/30 hover:text-rose-600 dark:hover:text-rose-400'
                 }`}
               >
-                <Umbrella className="w-3.5 h-3.5" /> {isHoliday ? 'Holiday Active (Unmark)' : 'Mark Holiday'}
+                <Umbrella className={`w-3.5 h-3.5 ${isHoliday ? 'text-amber-600 dark:text-amber-400' : 'text-rose-500 dark:text-rose-400'}`} />
+                <span>{isHoliday ? 'Holiday Active (Unmark)' : 'Mark Holiday'}</span>
               </button>
             </div>
 
@@ -313,7 +319,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
                     <span>Holiday: {todayHoliday?.title || 'Enjoy Your Break!'}</span>
                   </h2>
                   <p className="text-sm text-neutral-600 dark:text-neutral-300 font-medium leading-relaxed max-w-2xl">
-                    Today ({format(currentTime, 'EEEE, dd MMMM yyyy')}) is recorded as an official holiday in your academic calendar. Regular classes and timetable reminder notifications are paused.
+                    Today (<span className="font-bold text-amber-600 dark:text-amber-400">{format(currentTime, 'EEEE, dd MMMM yyyy')}</span>) is recorded as an official holiday in your academic calendar. Regular classes and timetable reminder notifications are paused.
                   </p>
                 </div>
 
@@ -323,9 +329,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
                       triggerHaptic('light');
                       setActiveTab('schedule');
                     }}
-                    className="flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-neutral-900 hover:bg-neutral-800 dark:bg-neutral-100 dark:hover:bg-white text-white dark:text-neutral-900 font-bold text-xs shadow-md transition-all active:scale-95"
+                    className="flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-neutral-900 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-100 text-white dark:text-neutral-950 font-black text-xs shadow-md transition-all active:scale-95"
                   >
-                    <Calendar className="w-4 h-4" /> View Weekly Timetable
+                    <Calendar className="w-4 h-4 text-indigo-500 dark:text-indigo-600" /> View Weekly Timetable
                   </button>
 
                   <button
@@ -333,9 +339,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
                       triggerHaptic('light');
                       setActiveTab('settings');
                     }}
-                    className="flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-neutral-100 dark:bg-[#262626] text-neutral-800 dark:text-neutral-200 border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-200 dark:hover:bg-[#333333] font-bold text-xs shadow-sm transition-all active:scale-95"
+                    className="flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-neutral-100 dark:bg-neutral-800/80 text-neutral-800 dark:text-neutral-200 border border-neutral-200 dark:border-neutral-700/80 hover:bg-neutral-200 dark:hover:bg-neutral-700 font-bold text-xs shadow-sm transition-all active:scale-95"
                   >
-                    <Umbrella className="w-4 h-4" /> Manage Holiday Calendar
+                    <Umbrella className="w-4 h-4 text-amber-500 dark:text-amber-400" /> Manage Holiday Calendar
                   </button>
                 </div>
               </div>
@@ -357,7 +363,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
                   </div>
 
                   <p className="text-sm text-neutral-600 dark:text-neutral-300 font-medium leading-relaxed">
-                    Faculty: <strong className="text-neutral-900 dark:text-white font-bold">{heroSchedule.facultyName || 'Faculty'}</strong> • Classroom: <span className="font-bold text-neutral-800 dark:text-neutral-200">{heroSchedule.classroom || 'General'}</span> • Timing: <span className="font-mono font-bold text-neutral-900 dark:text-neutral-100">({heroConfig?.startTime} - {heroConfig?.endTime})</span>
+                    Faculty: <strong className="text-indigo-600 dark:text-indigo-400 font-bold">{heroSchedule.facultyName || 'Faculty'}</strong> • Classroom: <span className="font-bold text-emerald-600 dark:text-emerald-400">Room {heroSchedule.classroom || 'General'}</span> • Timing: <span className="font-mono font-bold text-sky-600 dark:text-sky-300 bg-sky-500/10 dark:bg-sky-500/20 px-1.5 py-0.5 rounded-md">({heroConfig?.startTime} - {heroConfig?.endTime})</span>
                   </p>
                 </div>
 
@@ -366,7 +372,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
                     triggerHaptic('medium');
                     setActiveTab('attendance');
                   }}
-                  className="flex items-center justify-center gap-2.5 w-full sm:w-auto px-7 py-3.5 rounded-2xl bg-neutral-900 hover:bg-neutral-800 dark:bg-neutral-100 dark:hover:bg-white text-white dark:text-neutral-900 font-black text-sm shadow-md transition-all duration-200 hover:scale-[1.02] active:scale-95"
+                  className="flex items-center justify-center gap-2.5 w-full sm:w-auto px-7 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm shadow-lg shadow-emerald-600/25 transition-all duration-200 hover:scale-[1.02] active:scale-95"
                 >
                   <ClipboardCheck className="w-5 h-5" /> Take Attendance for Period {heroSchedule.periodNumber} Now
                   <ArrowRight className="w-4 h-4 ml-1" />
@@ -376,20 +382,31 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
               /* STANDBY / NO CLASS ACTIVE STATE */
               <>
                 <div>
-                  <h2 className="text-2xl sm:text-3xl font-black text-neutral-900 dark:text-white tracking-tight mb-1.5">
+                  <h2 className="text-2xl sm:text-3xl font-black text-neutral-900 dark:text-white tracking-tight mb-2">
                     No Class Currently in Session
                   </h2>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-300 font-medium leading-relaxed">
+                  <p className="text-sm text-neutral-600 dark:text-neutral-300 font-medium leading-relaxed max-w-2xl">
                     {nextLaterClass ? (
                       <>
-                        Next class today is <strong className="text-neutral-900 dark:text-white font-bold">Period {nextLaterClass.schedule.periodNumber} ({nextLaterClass.subject?.name || nextLaterClass.schedule.subjectCode})</strong> starting at <span className="font-mono font-bold text-neutral-900 dark:text-neutral-100">{nextLaterClass.config.startTime}</span> in Room {nextLaterClass.schedule.classroom || 'General'} (in {Math.floor(nextLaterClass.startsInMins / 60) > 0 ? `${Math.floor(nextLaterClass.startsInMins / 60)}h ` : ''}{nextLaterClass.startsInMins % 60}m).
+                        Next class today is{' '}
+                        <strong className="text-indigo-600 dark:text-indigo-400 font-bold bg-indigo-500/10 dark:bg-indigo-500/20 px-2 py-0.5 rounded-md">
+                          Period {nextLaterClass.schedule.periodNumber}: {nextLaterClass.subject?.name || nextLaterClass.schedule.subjectCode}
+                        </strong>{' '}
+                        starting at{' '}
+                        <span className="font-mono font-bold text-sky-600 dark:text-sky-300 bg-sky-500/10 dark:bg-sky-500/20 px-1.5 py-0.5 rounded-md">
+                          {nextLaterClass.config.startTime}
+                        </span>{' '}
+                        in <span className="font-bold text-emerald-600 dark:text-emerald-400">Room {nextLaterClass.schedule.classroom || 'General'}</span>{' '}
+                        <span className="inline-flex items-center gap-1 font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 px-2 py-0.5 rounded-md">
+                          in {Math.floor(nextLaterClass.startsInMins / 60) > 0 ? `${Math.floor(nextLaterClass.startsInMins / 60)}h ` : ''}{nextLaterClass.startsInMins % 60}m
+                        </span>.
                       </>
                     ) : todaySchedules.length > 0 ? (
-                      <>All scheduled periods for today ({todayName}) have finished.</>
+                      <>All scheduled periods for today (<span className="font-bold text-indigo-600 dark:text-indigo-400">{todayName}</span>) have finished.</>
                     ) : isSunday || isSaturdayDisabled ? (
-                      <>Weekend — No classes are scheduled for today ({todayName}).</>
+                      <><span className="font-bold text-amber-600 dark:text-amber-400">Weekend Break</span> — No classes are scheduled for today ({todayName}).</>
                     ) : (
-                      <>No classes are scheduled for today ({todayName}).</>
+                      <>No classes are scheduled for today (<span className="font-bold text-indigo-600 dark:text-indigo-400">{todayName}</span>).</>
                     )}
                   </p>
                 </div>
@@ -400,9 +417,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
                       triggerHaptic('medium');
                       setActiveTab('attendance');
                     }}
-                    className="flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-neutral-900 hover:bg-neutral-800 dark:bg-neutral-100 dark:hover:bg-white text-white dark:text-neutral-900 font-bold text-xs shadow-md transition-all active:scale-95"
+                    className="flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-neutral-900 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-100 text-white dark:text-neutral-950 font-black text-xs shadow-md transition-all active:scale-95"
                   >
-                    <ClipboardCheck className="w-4 h-4" /> Take Attendance (Manual)
+                    <ClipboardCheck className="w-4 h-4 text-emerald-500 dark:text-emerald-600" /> Take Attendance (Manual)
                   </button>
 
                   <button
@@ -410,9 +427,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
                       triggerHaptic('light');
                       setActiveTab('schedule');
                     }}
-                    className="flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-neutral-100 dark:bg-[#262626] text-neutral-800 dark:text-neutral-200 border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-200 dark:hover:bg-[#333333] font-bold text-xs shadow-sm transition-all active:scale-95"
+                    className="flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-neutral-100 dark:bg-neutral-800/80 text-neutral-800 dark:text-neutral-200 border border-neutral-200 dark:border-neutral-700/80 hover:bg-indigo-500/10 hover:border-indigo-500/40 hover:text-indigo-600 dark:hover:text-indigo-300 font-bold text-xs shadow-sm transition-all active:scale-95"
                   >
-                    <Calendar className="w-4 h-4" /> View Full Timetable
+                    <Calendar className="w-4 h-4 text-indigo-500 dark:text-indigo-400" /> View Full Timetable
                   </button>
                 </div>
               </>
@@ -421,78 +438,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
         </div>
       </div>
 
-      {/* AI SMART DAILY SCHEDULE & TASK PLANNER */}
-      <div className="bg-white dark:bg-[#171717] border border-neutral-200 dark:border-neutral-800 rounded-3xl p-6 sm:p-7 shadow-sm space-y-5 card-interactive">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 flex items-center justify-center shadow-md shrink-0">
-              <Sparkles className="w-6 h-6 animate-pulse" />
-            </div>
-            <div>
-              <h3 className="text-lg font-black text-neutral-900 dark:text-white flex items-center gap-2">
-                AI Smart Daily Schedule & Task Planner
-              </h3>
-              <p className="text-xs text-neutral-500 dark:text-neutral-400 font-medium">
-                {aiDayPlan.summary}
-              </p>
-            </div>
-          </div>
 
-          <div className="w-14 h-14 shrink-0 hidden sm:flex items-center justify-center">
-            <img
-              src="/illustrations/ai_assistant.jpg"
-              alt="AI Assistant"
-              className="w-full h-full object-contain blend-illustration"
-            />
-          </div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-neutral-50 dark:bg-[#262626] border border-neutral-200 dark:border-neutral-700 text-xs">
-          <span className="font-extrabold text-neutral-900 dark:text-white block uppercase text-[10px] tracking-wider mb-1 flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" /> Today's AI Focus Goal
-          </span>
-          <p className="font-bold text-neutral-800 dark:text-neutral-200 text-xs sm:text-sm">
-            {aiDayPlan.focusGoal}
-          </p>
-        </div>
-
-        <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-          {aiDayPlan.blocks.map((block: any, idx: number) => (
-            <div
-              key={idx}
-              className="p-3.5 rounded-2xl bg-neutral-50 dark:bg-[#262626] border border-neutral-200 dark:border-neutral-700 flex items-start justify-between gap-3 text-xs hover:border-neutral-400 dark:hover:border-neutral-600 transition-all duration-200"
-            >
-              <div>
-                <span className="font-mono font-bold text-neutral-400 text-[10px] block mb-0.5">
-                  {block.timeSlot}
-                </span>
-                <h4 className="font-extrabold text-neutral-900 dark:text-white text-xs sm:text-sm">
-                  {block.activity}
-                </h4>
-                <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5">
-                  {block.suggestion}
-                </p>
-              </div>
-              <span className="px-2.5 py-1 rounded-full text-[9px] font-extrabold uppercase shrink-0 shadow-sm bg-neutral-200 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200">
-                {block.type}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
 
       {/* Tasks, Assignments & Exam Reminders Widget */}
       <div className="bg-white dark:bg-[#171717] border border-neutral-200 dark:border-neutral-800 rounded-3xl p-4 sm:p-6 shadow-sm space-y-4 card-interactive">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4">
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
-            <div className="w-8 h-8 rounded-xl bg-neutral-100 dark:bg-[#262626] text-neutral-900 dark:text-white flex items-center justify-center font-bold shrink-0">
-              <ListTodo className="w-4 h-4" />
+            <div className="w-8 h-8 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-500 flex items-center justify-center font-bold shrink-0">
+              <ListTodo className="w-4 h-4 text-indigo-500" />
             </div>
             <div className="flex items-center gap-2 min-w-0 flex-wrap">
               <h3 className="text-sm sm:text-base font-bold text-neutral-900 dark:text-white">
                 Tasks & Exam Reminders
               </h3>
-              <span className="px-2.5 py-0.5 rounded-full bg-neutral-100 dark:bg-[#262626] text-neutral-800 dark:text-neutral-200 text-[10px] font-extrabold whitespace-nowrap shrink-0 animate-badge-pop">
+              <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20 text-[10px] font-extrabold whitespace-nowrap shrink-0 animate-badge-pop">
                 {pendingTasks.length} Pending
               </span>
             </div>
@@ -500,7 +459,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
 
           <button
             onClick={() => setIsTasksModalOpen(true)}
-            className="text-xs font-bold text-neutral-900 dark:text-white hover:underline flex items-center gap-1 shrink-0 self-end sm:self-auto hover:translate-x-1 transition-transform"
+            className="text-xs font-bold text-neutral-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline flex items-center gap-1 shrink-0 self-end sm:self-auto hover:translate-x-1 transition-all"
           >
             Manage All <ChevronRight className="w-4 h-4" />
           </button>
@@ -516,8 +475,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
               const dueObj = new Date(task.dueDate);
               const overdue = isPast(dueObj) && !isToday(dueObj);
 
-              let badgeColor = 'bg-neutral-100 dark:bg-[#262626] text-neutral-800 dark:text-neutral-200';
-              if (task.type === 'exam') badgeColor = 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300';
+              let badgeColor = 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300';
+              if (task.type === 'exam') {
+                badgeColor = 'bg-rose-500/15 border border-rose-500/30 text-rose-700 dark:text-rose-300';
+              } else if (task.type === 'assignment') {
+                badgeColor = 'bg-blue-500/15 border border-blue-500/30 text-blue-700 dark:text-blue-300';
+              } else if (task.type === 'project') {
+                badgeColor = 'bg-purple-500/15 border border-purple-500/30 text-purple-700 dark:text-purple-300';
+              }
 
               return (
                 <div
@@ -527,9 +492,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
                   <div className="flex items-center gap-3 min-w-0">
                     <button
                       onClick={() => toggleTaskCompleted(task)}
-                      className="w-6 h-6 rounded-lg border border-neutral-300 dark:border-neutral-600 hover:border-neutral-900 dark:hover:border-white hover:scale-110 active:scale-95 flex items-center justify-center shrink-0 transition-all"
+                      className="w-6 h-6 rounded-lg border border-neutral-300 dark:border-neutral-600 hover:border-emerald-500 dark:hover:border-emerald-400 hover:scale-110 active:scale-95 flex items-center justify-center shrink-0 transition-all"
                     >
-                      {task.isCompleted && <CheckCircle2 className="w-4 h-4 text-[var(--accent-tertiary)]" />}
+                      {task.isCompleted && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
                     </button>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
@@ -549,7 +514,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
                   </div>
 
                   <span className={`text-[11px] font-bold shrink-0 font-mono px-2.5 py-1 rounded-full ${
-                    overdue ? 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 animate-pulse' : 'bg-neutral-200 dark:bg-[#171717] text-neutral-700 dark:text-neutral-300'
+                    overdue
+                      ? 'bg-rose-500/15 border border-rose-500/30 text-rose-700 dark:text-rose-300 animate-pulse'
+                      : 'bg-neutral-200/70 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300'
                   }`}>
                     {overdue ? 'Overdue' : task.dueDate}
                   </span>
@@ -564,7 +531,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
       <div className="bg-white dark:bg-[#171717] border border-neutral-200 dark:border-neutral-800 rounded-3xl p-6 shadow-sm space-y-4 card-interactive">
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold text-neutral-900 dark:text-white flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-neutral-900 dark:text-white" /> Today's Classes
+            <Calendar className="w-5 h-5 text-sky-500" /> Today's Classes
           </h3>
           <button
             onClick={() => setActiveTab('schedule')}

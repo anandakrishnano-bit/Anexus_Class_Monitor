@@ -84,15 +84,15 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab })
       )}
 
       <div
-        className={`fixed bottom-0 left-0 right-0 z-40 md:hidden transition-transform duration-300 ease-in-out ${
-          isDialogOpen ? 'translate-y-full pointer-events-none opacity-0' : 'translate-y-0 opacity-100'
+        className={`fixed bottom-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] left-0 right-0 z-40 md:hidden flex justify-center px-3.5 pointer-events-none transition-transform duration-300 ease-in-out ${
+          isDialogOpen ? 'translate-y-28 opacity-0' : 'translate-y-0 opacity-100'
         }`}
         ref={moreRef}
       >
-        <div className="bg-white dark:bg-black border-t border-neutral-200/80 dark:border-neutral-800 px-3 pt-2 pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)] shadow-[0_-4px_20px_rgba(0,0,0,0.06)] relative z-40">
+        <div className="pointer-events-auto w-full max-w-sm sm:max-w-md bg-white/90 dark:bg-[#141416]/90 backdrop-blur-2xl border border-neutral-200/90 dark:border-white/10 rounded-full px-2 py-1 shadow-[0_10px_35px_rgba(0,0,0,0.12)] dark:shadow-[0_10px_35px_rgba(0,0,0,0.65)] relative z-40 ring-1 ring-black/5 dark:ring-white/5">
           {/* More menu popup with expanding spring animation */}
           {isMoreOpen && (
-            <div className="absolute bottom-full right-3 pb-2 w-56 max-w-[85vw] more-menu-expand z-50">
+            <div className="absolute bottom-[calc(100%+0.75rem)] right-2 pb-1 w-56 max-w-[85vw] more-menu-expand z-50">
               <div className="bg-white dark:bg-[#171717] border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-2xl p-2 space-y-1 overflow-hidden">
                 <div className="px-2.5 py-1">
                   <span className="text-[10px] font-bold tracking-wider uppercase text-neutral-400">
@@ -125,47 +125,79 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab })
             </div>
           )}
 
-        {/* Main nav items with sliding capsule animation */}
+        {/* Main nav items with fluid sliding capsule animation */}
         {(() => {
-          const activeNavIndex = isMoreActive || isMoreOpen ? 4 : primaryItems.findIndex(item => item.id === activeTab);
+          const targetNavIndex = isMoreActive || isMoreOpen ? 4 : primaryItems.findIndex(item => item.id === activeTab);
           return (
-            <div className="relative grid grid-cols-5 items-center max-w-md mx-auto py-1">
-              {/* Sliding capsule indicator with larger bounds & tertiary color tint */}
-              {activeNavIndex !== -1 && (
+            <div className="relative grid grid-cols-5 items-center w-full py-0.5">
+              {/* Fluid sliding capsule indicator with spring physics and liquid stretch */}
+              {targetNavIndex !== -1 && (
                 <div
-                  className="absolute -inset-y-0.5 w-1/5 px-1 py-0.5 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] pointer-events-none z-0"
+                  className="absolute inset-y-0.5 w-1/5 px-1 pointer-events-none z-0 transition-transform duration-500 ease-[cubic-bezier(0.32,1.25,0.32,1)]"
                   style={{
-                    transform: `translateX(${activeNavIndex * 100}%)`,
+                    transform: `translateX(${targetNavIndex * 100}%)`,
                   }}
                 >
-                  <div className="w-full h-full rounded-2xl bg-[var(--accent-tertiary-subtle)]/40 dark:bg-[var(--accent-tertiary-subtle)]/25 border border-[var(--accent-tertiary)]/35 dark:border-[var(--accent-tertiary)]/40 shadow-sm" />
+                  <div
+                    className={`w-full h-full bg-[var(--accent-tertiary-subtle)]/45 dark:bg-[var(--accent-tertiary-subtle)]/30 border border-[var(--accent-tertiary)]/40 dark:border-[var(--accent-tertiary)]/45 shadow-[0_2px_12px_rgba(0,0,0,0.06)] dark:shadow-[0_2px_16px_rgba(0,0,0,0.4)] backdrop-blur-md relative overflow-hidden transition-all duration-500 ${
+                      targetNavIndex === 0
+                        ? 'rounded-l-full rounded-r-xl'
+                        : targetNavIndex === 4
+                        ? 'rounded-r-full rounded-l-xl'
+                        : 'rounded-xl'
+                    }`}
+                  >
+                    {/* Fluid liquid specular sheen highlight */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-white/30 via-transparent to-black/5 dark:from-white/12 dark:to-transparent pointer-events-none" />
+                    {/* Ambient glow droplet behind active icon */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[var(--accent-tertiary)]/20 blur-md pointer-events-none" />
+                  </div>
                 </div>
               )}
 
-              {primaryItems.map(item => {
+              {primaryItems.map((item, idx) => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id;
+                const cornerRadiusClass =
+                  idx === 0
+                    ? 'rounded-l-full rounded-r-xl'
+                    : 'rounded-xl';
                 return (
                   <button
                     key={item.id}
                     onClick={() => handleTabClick(item.id)}
-                    className={`flex flex-col items-center justify-center gap-1 py-1 rounded-2xl transition-all duration-200 active:scale-95 relative z-10 ${
+                    className={`flex flex-col items-center justify-center py-1 transition-all duration-300 active:scale-95 relative z-10 w-full select-none ${cornerRadiusClass} ${
                       isActive
                         ? 'text-neutral-900 dark:text-neutral-100 font-bold'
                         : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200'
                     }`}
                   >
-                    <div
-                      className={`p-1.5 rounded-xl transition-all duration-200 relative ${
-                        isActive ? 'scale-105' : 'hover:scale-105'
-                      }`}
-                    >
-                      <Icon className={`w-5 h-5 ${isActive ? 'text-[var(--accent-tertiary)]' : ''}`} />
-                      {isActive && (
-                        <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[var(--accent-tertiary)] shadow-[0_0_6px_var(--accent-tertiary)]" />
+                    <div className="relative flex items-center justify-center pt-0.5">
+                      <Icon
+                        className={`w-5 h-5 transition-transform duration-500 ${
+                          isActive
+                            ? 'text-[var(--accent-tertiary)] scale-110 animate-fluid-pop'
+                            : 'hover:scale-105'
+                        }`}
+                      />
+                    </div>
+
+                    {/* Active dot indicator: perfectly centered, with clean clearance from icon and text */}
+                    <div className="h-2 flex items-center justify-center my-0.5">
+                      {isActive ? (
+                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-tertiary)] shadow-[0_0_8px_var(--accent-tertiary)] animate-fluid-dot" />
+                      ) : (
+                        <span className="w-1.5 h-1.5 opacity-0" />
                       )}
                     </div>
-                    <span className={`text-[10px] tracking-tight ${isActive ? 'font-black text-neutral-900 dark:text-neutral-100' : 'font-medium'}`}>
+
+                    <span
+                      className={`text-[10px] tracking-tight leading-none px-0.5 truncate max-w-full text-center transition-colors duration-300 ${
+                        isActive
+                          ? 'font-bold text-neutral-900 dark:text-neutral-100'
+                          : 'font-medium'
+                      }`}
+                    >
                       {item.label}
                     </span>
                   </button>
@@ -178,20 +210,38 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab })
                   triggerHaptic('light');
                   setIsMoreOpen(prev => !prev);
                 }}
-                className={`flex flex-col items-center justify-center gap-1 py-1 rounded-2xl transition-all duration-200 active:scale-95 relative z-10 ${
+                className={`flex flex-col items-center justify-center py-1 rounded-r-full rounded-l-xl transition-all duration-300 active:scale-95 relative z-10 w-full select-none ${
                   isMoreActive || isMoreOpen
                     ? 'text-neutral-900 dark:text-neutral-100 font-bold'
                     : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200'
                 }`}
               >
-                <div
-                  className={`p-1.5 rounded-xl transition-all duration-200 ${
-                    isMoreActive || isMoreOpen ? 'scale-105' : 'hover:scale-105'
+                <div className="relative flex items-center justify-center pt-0.5">
+                  {isMoreOpen ? (
+                    <X className="w-5 h-5 text-[var(--accent-tertiary)] animate-fluid-pop" />
+                  ) : (
+                    <MoreHorizontal
+                      className={`w-5 h-5 transition-transform duration-500 ${
+                        isMoreActive ? 'text-[var(--accent-tertiary)] scale-110 animate-fluid-pop' : 'hover:scale-105'
+                      }`}
+                    />
+                  )}
+                </div>
+
+                {/* More button dot indicator */}
+                <div className="h-2 flex items-center justify-center my-0.5">
+                  {isMoreActive || isMoreOpen ? (
+                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-tertiary)] shadow-[0_0_8px_var(--accent-tertiary)] animate-fluid-dot" />
+                  ) : (
+                    <span className="w-1.5 h-1.5 opacity-0" />
+                  )}
+                </div>
+
+                <span
+                  className={`text-[10px] tracking-tight leading-none px-0.5 truncate max-w-full text-center transition-colors duration-300 ${
+                    isMoreActive || isMoreOpen ? 'font-bold text-neutral-900 dark:text-neutral-100' : 'font-medium'
                   }`}
                 >
-                  {isMoreOpen ? <X className="w-5 h-5" /> : <MoreHorizontal className="w-5 h-5" />}
-                </div>
-                <span className={`text-[10px] tracking-tight ${isMoreActive || isMoreOpen ? 'font-black text-neutral-900 dark:text-neutral-100' : 'font-medium'}`}>
                   More
                 </span>
               </button>

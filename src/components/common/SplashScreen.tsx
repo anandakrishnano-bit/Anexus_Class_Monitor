@@ -1,187 +1,280 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useTheme } from '../../context/ThemeContext';
+import { triggerHaptic } from '../../utils/haptics';
 
 interface SplashScreenProps {
   onFinish: () => void;
+  onExitStart?: () => void;
 }
 
-export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
-  const [stage, setStage] = useState<'enter' | 'animate' | 'exit' | 'done'>('enter');
-  const [progress, setProgress] = useState<number>(0);
+export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish, onExitStart }) => {
+  const { isDark } = useTheme();
+  // Stages:
+  // 1. 'enter'    - Initial entrance
+  // 2. 'assemble' - Logo tiers spring together (0ms -> 650ms)
+  // 3. 'text'     - Brand name expands (650ms -> 1550ms)
+  // 4. 'exit'     - Smooth 500ms optical dissolve (1550ms -> 2050ms)
+  // 5. 'done'     - Teardown & DOM unmount at 2.05s
+  const [stage, setStage] = useState<'enter' | 'assemble' | 'text' | 'exit' | 'done'>('enter');
+  const finishedRef = useRef(false);
 
   useEffect(() => {
-    // 1. Initial entrance trigger
-    const startTimer = setTimeout(() => {
-      setStage('animate');
+    // Stage 1: Assemble tiers (40ms)
+    const assembleTimer = setTimeout(() => {
+      if (!finishedRef.current) {
+        setStage('assemble');
+        triggerHaptic('light');
+      }
     }, 40);
 
-    // 2. Smooth progress counter (0 -> 100%)
-    const progressInterval = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(progressInterval);
-          return 100;
-        }
-        return Math.min(prev + Math.floor(Math.random() * 15 + 10), 100);
-      });
-    }, 90);
+    // Stage 2: Reveal typography with tracking expansion (650ms)
+    const textTimer = setTimeout(() => {
+      if (!finishedRef.current) {
+        setStage('text');
+        triggerHaptic('medium');
+      }
+    }, 650);
 
-    // 3. Exit transition trigger
+    // Stage 3: Begin smooth fade out and notify app to fade in (1550ms)
     const exitTimer = setTimeout(() => {
-      setStage('exit');
-    }, 1250);
+      if (!finishedRef.current) {
+        onExitStart?.();
+        setStage('exit');
+      }
+    }, 1550);
 
-    // 4. Teardown splash
-    const finishTimer = setTimeout(() => {
-      setStage('done');
-      onFinish();
-    }, 1600);
+    // Stage 4: Teardown at 2050ms (after full 500ms exit fade completes)
+    const doneTimer = setTimeout(() => {
+      if (!finishedRef.current) {
+        finishedRef.current = true;
+        setStage('done');
+        onFinish();
+      }
+    }, 2050);
 
     return () => {
-      clearTimeout(startTimer);
-      clearInterval(progressInterval);
+      clearTimeout(assembleTimer);
+      clearTimeout(textTimer);
       clearTimeout(exitTimer);
-      clearTimeout(finishTimer);
+      clearTimeout(doneTimer);
     };
-  }, [onFinish]);
+  }, [onFinish, onExitStart]);
 
   if (stage === 'done') return null;
 
+  const isAssembling = stage !== 'enter';
+  const isTextStage = stage === 'text';
   const isExiting = stage === 'exit';
+
+  // Palette adaptation based on Dark vs Light Mode
+  const bgColor = isDark ? '#000000' : '#FFFFFF';
+  const textColor = isDark ? '#FFFFFF' : '#09090B';
+  const subtextColor = isDark ? '#A1A1AA' : '#71717A';
+
+  // Logo tier colors inverted gracefully for Light Mode contrast
+  const topDiamondFill = isDark ? 'url(#topFacetDarkGrad)' : 'url(#topFacetLightGrad)';
+  const topDiamondStroke = isDark ? '#FFFFFF' : '#18181B';
+  const innerRidgeStroke = isDark ? '#FFFFFF' : '#000000';
+
+  const midTierFill = isDark ? 'url(#midTierDarkGrad)' : 'url(#midTierLightGrad)';
+  const midTierStroke = isDark ? '#A1A1AA' : '#52525B';
+
+  const botTierFill = isDark ? 'url(#botTierDarkGrad)' : 'url(#botTierLightGrad)';
+  const botTierStroke = isDark ? '#52525B' : '#A1A1AA';
+
+  const handleDismiss = () => {
+    if (finishedRef.current || isExiting) return;
+    onExitStart?.();
+    setStage('exit');
+    setTimeout(() => {
+      if (!finishedRef.current) {
+        finishedRef.current = true;
+        setStage('done');
+        onFinish();
+      }
+    }, 450);
+  };
 
   return (
     <div
-      className={`fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-[#09090B] text-white select-none transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-        isExiting ? 'opacity-0 scale-105 pointer-events-none' : 'opacity-100'
+      onClick={handleDismiss}
+      role="button"
+      tabIndex={0}
+      title="Tap to skip"
+      className={`fixed inset-0 z-[999999] flex flex-col items-center justify-center select-none overflow-hidden cursor-pointer ${
+        isExiting ? 'opacity-0 scale-[1.03] pointer-events-none' : 'opacity-100 scale-100'
       }`}
+      style={{
+        backgroundColor: bgColor,
+        transition: 'opacity 500ms cubic-bezier(0.16, 1, 0.3, 1), transform 500ms cubic-bezier(0.16, 1, 0.3, 1)',
+        willChange: 'opacity, transform',
+      }}
     >
-      {/* Dynamic ambient volumetric gradient backdrop */}
+      {/* Dynamic Ambient Volumetric Radial Glow */}
       <div
-        className={`absolute w-[450px] h-[450px] rounded-full bg-gradient-to-tr from-amber-500/15 via-rose-500/10 to-indigo-500/15 blur-[120px] pointer-events-none transition-all duration-1000 ${
-          isExiting ? 'scale-[2.5] opacity-0' : 'scale-100 opacity-100'
-        }`}
+        className={`absolute w-[440px] h-[440px] rounded-full pointer-events-none transition-all duration-1000 ${
+          isDark
+            ? 'bg-gradient-to-tr from-white/10 via-neutral-500/10 to-transparent blur-[110px]'
+            : 'bg-gradient-to-tr from-neutral-300/40 via-neutral-200/25 to-transparent blur-[90px]'
+        } ${isExiting ? 'scale-[2] opacity-0' : 'scale-100 opacity-90'}`}
       />
 
-      {/* Main Content Container with Dribbble-style Lottie Spring Motion */}
-      <div className="relative z-10 flex flex-col items-center text-center px-6">
-        {/* Animated Layered Diamond Emblem */}
-        <div className="relative mb-7">
-          {/* Ambient Glow Aura */}
+      {/* Main Kinetic Assembly Container */}
+      <div
+        className={`relative z-10 flex flex-col items-center text-center px-6 pointer-events-none transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          isExiting ? 'opacity-0 scale-95 translate-y-1' : 'opacity-100 scale-100 translate-y-0'
+        }`}
+      >
+        {/* Emblem Badge Container */}
+        <div className="relative mb-5">
+          {/* Subtle Ambient Halo */}
           <div
-            className={`absolute -inset-6 rounded-full bg-white/10 blur-2xl transition-all duration-700 ${
-              stage === 'animate' ? 'scale-110 opacity-70' : 'scale-75 opacity-0'
-            }`}
+            className={`absolute -inset-8 rounded-full blur-xl transition-all duration-500 ${
+              isDark ? 'bg-white/5' : 'bg-black/5'
+            } ${isTextStage ? 'scale-110 opacity-70' : 'scale-90 opacity-0'}`}
           />
 
-          {/* Icon Badge Container with Spring Scale */}
-          <div
-            className={`relative w-28 h-28 sm:w-32 sm:h-32 rounded-[2.5rem] bg-gradient-to-b from-[#18181B] to-[#09090B] p-6 shadow-2xl flex items-center justify-center border border-white/15 ring-1 ring-white/10 transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
-              stage === 'enter'
-                ? 'scale-50 rotate-[-12deg] opacity-0'
-                : stage === 'animate'
-                ? 'scale-100 rotate-0 opacity-100'
-                : 'scale-110 opacity-0'
-            }`}
-          >
-            {/* Vector Animated Layered Diamond Logo */}
+          {/* EXACT OFFICIAL APP LOGO (public/favicon.svg & ic_launcher_foreground.xml) */}
+          <div className="relative w-32 h-32 sm:w-36 sm:h-36 flex items-center justify-center">
             <svg
-              viewBox="0 0 512 512"
-              className="w-full h-full drop-shadow-xl"
+              viewBox="0 0 300 330"
+              className={`w-full h-full overflow-visible ${
+                isDark
+                  ? 'drop-shadow-[0_15px_30px_rgba(0,0,0,0.95)]'
+                  : 'drop-shadow-[0_12px_24px_rgba(0,0,0,0.12)]'
+              }`}
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
             >
-              {/* Outer Stroke Outline with Path Drawing Animation */}
-              <path
-                d="M256 120 L380 192 L256 264 L132 192 Z"
-                className={`transition-all duration-700 ease-out ${
-                  stage === 'animate' ? 'opacity-100' : 'opacity-0'
-                }`}
-                fill="url(#topFacetGrad)"
-                stroke="#FFFFFF"
-                strokeWidth="6"
-                strokeLinejoin="round"
-              />
-
-              {/* Middle Diamond Layer with Downward Cascade */}
-              <path
-                d="M132 238 L256 310 L380 238 L380 274 L256 346 L132 274 Z"
-                className={`transition-all duration-700 delay-100 ease-out ${
-                  stage === 'animate' ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'
-                }`}
-                fill="url(#midFacetGrad)"
-                stroke="#E4E4E7"
-                strokeWidth="4"
-                strokeLinejoin="round"
-              />
-
-              {/* Bottom Diamond Foundation Layer */}
-              <path
-                d="M132 310 L256 382 L380 310 L380 346 L256 418 L132 346 Z"
-                className={`transition-all duration-700 delay-200 ease-out ${
-                  stage === 'animate' ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-6'
-                }`}
-                fill="url(#botFacetGrad)"
-                stroke="#A1A1AA"
-                strokeWidth="4"
-                strokeLinejoin="round"
-              />
-
-              {/* Gradients */}
               <defs>
-                <linearGradient id="topFacetGrad" x1="132" y1="120" x2="380" y2="264" gradientUnits="userSpaceOnUse">
-                  <stop stopColor="#FFFFFF" />
-                  <stop offset="1" stopColor="#E4E4E7" />
+                {/* DARK MODE GRADIENTS */}
+                <linearGradient id="topFacetDarkGrad" x1="30" y1="20" x2="270" y2="160" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stopColor="#FFFFFF" />
+                  <stop offset="50%" stopColor="#F4F4F5" />
+                  <stop offset="100%" stopColor="#E4E4E7" />
                 </linearGradient>
-                <linearGradient id="midFacetGrad" x1="132" y1="238" x2="380" y2="346" gradientUnits="userSpaceOnUse">
-                  <stop stopColor="#D4D4D8" />
-                  <stop offset="1" stopColor="#A1A1AA" />
+                <linearGradient id="midTierDarkGrad" x1="30" y1="135" x2="270" y2="240" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stopColor="#E4E4E7" />
+                  <stop offset="100%" stopColor="#A1A1AA" />
                 </linearGradient>
-                <linearGradient id="botFacetGrad" x1="132" y1="310" x2="380" y2="418" gradientUnits="userSpaceOnUse">
-                  <stop stopColor="#71717A" />
-                  <stop offset="1" stopColor="#52525B" />
+                <linearGradient id="botTierDarkGrad" x1="30" y1="205" x2="270" y2="310" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stopColor="#71717A" />
+                  <stop offset="100%" stopColor="#3F3F46" />
+                </linearGradient>
+
+                {/* LIGHT MODE GRADIENTS */}
+                <linearGradient id="topFacetLightGrad" x1="30" y1="20" x2="270" y2="160" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stopColor="#27272A" />
+                  <stop offset="60%" stopColor="#18181B" />
+                  <stop offset="100%" stopColor="#09090B" />
+                </linearGradient>
+                <linearGradient id="midTierLightGrad" x1="30" y1="135" x2="270" y2="240" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stopColor="#71717A" />
+                  <stop offset="100%" stopColor="#52525B" />
+                </linearGradient>
+                <linearGradient id="botTierLightGrad" x1="30" y1="205" x2="270" y2="310" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stopColor="#D4D4D8" />
+                  <stop offset="100%" stopColor="#A1A1AA" />
                 </linearGradient>
               </defs>
+
+              {/* ----------------------------------------------------
+                  1. BOTTOM TIER: Floats up smoothly
+                  ---------------------------------------------------- */}
+              <g
+                style={{
+                  transform: isAssembling ? 'translateY(0px)' : 'translateY(35px)',
+                  opacity: isAssembling ? 1 : 0,
+                  transition: 'transform 550ms cubic-bezier(0.16, 1, 0.3, 1), opacity 500ms ease-out',
+                }}
+              >
+                <path
+                  d="M30 205 L150 275 L270 205 L270 240 L150 310 L30 240 Z"
+                  fill={botTierFill}
+                  stroke={botTierStroke}
+                  strokeWidth="1.5"
+                  strokeLinejoin="round"
+                />
+              </g>
+
+              {/* ----------------------------------------------------
+                  2. MIDDLE TIER: Glides in and snaps down
+                  ---------------------------------------------------- */}
+              <g
+                style={{
+                  transform: isAssembling ? 'translateY(0px)' : 'translateY(20px)',
+                  opacity: isAssembling ? 1 : 0,
+                  transition: 'transform 600ms cubic-bezier(0.16, 1, 0.3, 1) 70ms, opacity 500ms ease-out 70ms',
+                }}
+              >
+                <path
+                  d="M30 135 L150 205 L270 135 L270 170 L150 240 L30 170 Z"
+                  fill={midTierFill}
+                  stroke={midTierStroke}
+                  strokeWidth="1.5"
+                  strokeLinejoin="round"
+                />
+              </g>
+
+              {/* ----------------------------------------------------
+                  3. TOP DIAMOND: Springs down with elastic snap
+                  ---------------------------------------------------- */}
+              <g
+                style={{
+                  transform: isAssembling
+                    ? 'translateY(0px) scale(1)'
+                    : 'translateY(-40px) scale(0.85)',
+                  opacity: isAssembling ? 1 : 0,
+                  transformOrigin: '150px 90px',
+                  transition: 'transform 650ms cubic-bezier(0.34, 1.56, 0.64, 1) 130ms, opacity 550ms ease-out 130ms',
+                }}
+              >
+                <path
+                  d="M150 20 L270 90 L150 160 L30 90 Z"
+                  fill={topDiamondFill}
+                  stroke={topDiamondStroke}
+                  strokeWidth="2"
+                  strokeLinejoin="round"
+                />
+
+                {/* Subtle Inner Diamond Ridge Highlight */}
+                <path
+                  d="M150 35 L250 90 L150 145 L50 90 Z"
+                  fill="none"
+                  stroke={innerRidgeStroke}
+                  strokeWidth="0.75"
+                  strokeOpacity={isDark ? 0.5 : 0.25}
+                />
+              </g>
             </svg>
           </div>
         </div>
 
         {/* Brand Name Typography with Kinetic Letter Spacing Expansion */}
-        <div className="overflow-hidden">
+        <div className="overflow-hidden mb-1.5">
           <h1
-            className={`text-2xl sm:text-3xl font-black text-white flex items-center justify-center gap-2 mb-2 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-              stage === 'animate'
-                ? 'tracking-[0.3em] opacity-100 translate-y-0'
-                : 'tracking-[0.05em] opacity-0 translate-y-4'
+            className={`text-2xl sm:text-3xl font-black flex items-center justify-center transition-all duration-600 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+              isTextStage
+                ? 'tracking-[0.28em] opacity-100 translate-y-0'
+                : 'tracking-[0.05em] opacity-0 translate-y-3'
             }`}
+            style={{ color: textColor }}
           >
-            <span>ANEXUS</span>
-            <span className="text-[10px] tracking-normal px-2 py-0.5 rounded-full bg-white/10 text-neutral-200 border border-white/10 font-bold">
-              PRO
-            </span>
+            <span className="font-extrabold">ANEXUS</span>
           </h1>
         </div>
 
-        {/* Subtitle with Staggered Upward Reveal */}
+        {/* Clean Subtitle with Staggered Upward Reveal */}
         <p
-          className={`text-[11px] font-bold tracking-widest uppercase text-neutral-400 mb-8 transition-all duration-700 delay-150 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-            stage === 'animate'
+          className={`text-[11px] font-bold tracking-[0.22em] uppercase transition-all duration-500 delay-70 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+            isTextStage
               ? 'opacity-100 translate-y-0'
-              : 'opacity-0 translate-y-3'
+              : 'opacity-0 translate-y-2'
           }`}
+          style={{ color: subtextColor }}
         >
-          Class Representative Workspace
+          Class Management Platform
         </p>
-
-        {/* Lottie-style Morphing Progress Capsule */}
-        <div
-          className={`w-44 h-1.5 rounded-full bg-neutral-800/80 overflow-hidden relative transition-all duration-500 delay-200 ${
-            stage === 'animate' ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
-          }`}
-        >
-          <div
-            className="h-full bg-gradient-to-r from-amber-400 via-rose-400 to-indigo-400 rounded-full transition-all duration-200 ease-out shadow-[0_0_12px_rgba(255,255,255,0.4)]"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
       </div>
     </div>
   );

@@ -176,17 +176,18 @@ describe('Theme Palette Dual-Mode Architecture', () => {
     const pinkPalette = resolveThemePalette('pink');
     expect(pinkPalette.name).toBe('Blush Rose');
     // White mode: primary replaces black with deep rich tone
-    expect(pinkPalette.light.primary).toBe('#9F1239');
-    expect(pinkPalette.light.bg).toBe('#FFF0F3');
+    expect(pinkPalette.light.primary).toBe('#882942');
+    expect(pinkPalette.light.bg).toBe('#FFF5F7');
     // Dark mode: primary replaces white with luminous tone
     expect(pinkPalette.dark.primary).toBe('#F9CAD2');
     expect(pinkPalette.dark.primaryText).toBe('#881337');
   });
 
-  it('should ensure all dark palettes have solid black #000000 background', async () => {
+  it('should ensure all dark palettes have rich themed dark background tokens', async () => {
     const { THEME_PALETTES } = await import('../context/ThemeContext');
     THEME_PALETTES.forEach(palette => {
-      expect(palette.dark.bg).toBe('#000000');
+      expect(palette.dark.bg).toBeDefined();
+      expect(palette.dark.bg.startsWith('#')).toBe(true);
     });
   });
 
@@ -203,7 +204,7 @@ describe('Theme Palette Dual-Mode Architecture', () => {
       tertiaryLight: '#A78BFA'
     });
     expect(dynPalette.id).toBe('material_you');
-    expect(dynPalette.dark.bg).toBe('#000000');
+    expect(dynPalette.dark.bg).toBeDefined();
     expect(dynPalette.light.surface).toBe('#FFFFFF');
     expect(dynPalette.light.accent).toBeDefined();
   });

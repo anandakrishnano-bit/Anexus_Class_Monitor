@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <rect width="512" height="512" rx="128" fill="#0A0A0A"/>
+  <!-- Outer subtle ring -->
+  <rect x="32" y="32" width="448" height="448" rx="100" fill="none" stroke="#262626" stroke-width="8"/>
+  <!-- Monochrome Geometric Emblem -->
+  <g transform="translate(106, 106)">
+    <!-- Top Diamond / Layer -->
+    <path d="M150 20 L270 90 L150 160 L30 90 Z" fill="#FFFFFF"/>
+    <!-- Middle Layer -->
+    <path d="M30 135 L150 205 L270 135 L270 170 L150 240 L30 170 Z" fill="#D4D4D4"/>
+    <!-- Bottom Layer -->
+    <path d="M30 205 L150 275 L270 205 L270 240 L150 310 L30 240 Z" fill="#737373"/>
+  </g>
+</svg>

@@ -76,7 +76,10 @@ import {
   Cloud,
   CloudUpload,
   CloudDownload,
-  RefreshCw
+  RefreshCw,
+  ChevronDown,
+  ChevronUp,
+  Palette
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import * as XLSX from 'xlsx';
@@ -88,6 +91,7 @@ import {
   checkOriginIslandSupport
 } from '../utils/liveNotification';
 import { exportJsonFile } from '../utils/fileExport';
+import { isAndroid } from '../utils/platform';
 import { testGeminiApiKey, GEMINI_MODELS } from '../utils/googleGeminiAi';
 import {
   testFirebaseConnection,
@@ -106,7 +110,7 @@ import {
   isFirebaseConfigValid
 } from '../utils/firebaseSync';
 import { CENTRAL_FIREBASE_CONFIG, isCentralFirebaseConfigured, verifyAdminAccessCode, createAdminSessionToken } from '../config/firebaseConfig';
-import { Database, Share2, Shield, Mail, Send, Palette } from 'lucide-react';
+import { Database, Share2, Shield, Mail, Send } from 'lucide-react';
 import { enqueueAttendanceEmail, flushPendingAttendanceEmails, shareAttendanceReport } from '../utils/emailDispatcher';
 import { Capacitor } from '@capacitor/core';
 
@@ -1301,32 +1305,22 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenWalkthrough, o
       </div>
 
       {/* APPEARANCE & THEME CARD */}
-      <div className="bg-white dark:bg-[#171717] border border-neutral-200 dark:border-neutral-800 rounded-3xl p-6 shadow-sm space-y-4">
+      <div className="bg-white dark:bg-[#0D0D0D] border border-neutral-200/90 dark:border-white/10 rounded-3xl p-6 shadow-sm space-y-4">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-extrabold text-neutral-900 dark:text-white uppercase tracking-wider">
               APPEARANCE & THEME
             </h3>
             <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5 font-medium">
-              Choose your theme mode with smooth circular page transitions.
+              Choose your theme mode and custom tint palette.
             </p>
           </div>
-          <button
-            onClick={(e) => {
-              triggerHaptic('medium');
-              toggleTheme(e);
-            }}
-            className="w-10 h-10 rounded-full bg-neutral-100 dark:bg-[#262626] border border-neutral-200 dark:border-neutral-700 flex items-center justify-center text-neutral-800 dark:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-[#333333] transition-all active:scale-95 shadow-sm"
-            title="Toggle Theme"
-          >
-            {isDark ? <Moon className="w-4 h-4 text-neutral-100" /> : <Sun className="w-4 h-4 text-amber-500" />}
-          </button>
         </div>
 
         <div className="grid grid-cols-3 gap-2.5 pt-1">
           {[
-            { id: 'light' as const, label: 'Light', icon: Sun, desc: 'Paper & muted tint' },
-            { id: 'dark' as const, label: 'Dark', icon: Moon, desc: 'OLED with glow' },
+            { id: 'light' as const, label: 'Light', icon: Sun, desc: 'Muted canvas & crisp white' },
+            { id: 'dark' as const, label: 'Dark', icon: Moon, desc: 'Themed luminous dark mode' },
             { id: 'system' as const, label: 'System', icon: Monitor, desc: 'Follow OS mode' },
           ].map((mode) => {
             const Icon = mode.icon;
@@ -1335,23 +1329,15 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenWalkthrough, o
               <button
                 key={mode.id}
                 type="button"
-                onClick={(e) => {
+                data-no-theme="true"
+                onClick={() => {
                   triggerHaptic('medium');
-                  if (mode.id === 'system') {
-                    setTheme('system');
-                  } else {
-                    const shouldChange = (mode.id === 'dark') !== isDark;
-                    if (shouldChange) {
-                      toggleTheme(e);
-                    } else {
-                      setTheme(mode.id);
-                    }
-                  }
+                  setTheme(mode.id, { skipTransition: true });
                 }}
                 className={`p-3.5 rounded-2xl border text-left transition-all active:scale-95 flex flex-col justify-between gap-2 ${
                   isSelected
-                    ? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900 border-neutral-900 dark:border-neutral-100 shadow-md ring-2 ring-neutral-900/20 dark:ring-white/20'
-                    : 'bg-neutral-50 dark:bg-[#262626] text-neutral-800 dark:text-neutral-200 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-[#333333]'
+                    ? 'bg-neutral-900 text-white dark:bg-white dark:!text-black border-neutral-900 dark:border-white shadow-md ring-2 ring-neutral-900/20 dark:ring-white/20'
+                    : 'bg-neutral-50 dark:bg-[#161616] text-neutral-800 dark:text-neutral-200 border-neutral-200/80 dark:border-white/10 hover:bg-neutral-100 dark:hover:bg-[#1E1E1E]'
                 }`}
               >
                 <div className="flex items-center justify-between w-full">
@@ -1370,7 +1356,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenWalkthrough, o
         </div>
 
         {/* Selected Soft Tint Palette */}
-        <div className="pt-3 border-t border-neutral-100 dark:border-neutral-800 space-y-2.5">
+        <div className="pt-3 border-t border-neutral-100 dark:border-white/10 space-y-2.5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-neutral-800 dark:text-neutral-200 flex items-center gap-1.5">
               <Palette className="w-3.5 h-3.5 text-pink-500" />
@@ -1395,22 +1381,25 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenWalkthrough, o
                   }}
                   className={`p-2.5 rounded-2xl border text-center transition-all flex flex-col items-center gap-1.5 active:scale-95 ${
                     isCurrent
-                      ? 'border-neutral-900 dark:border-white shadow-md ring-2 ring-neutral-900/20 dark:ring-white/20'
-                      : 'border-neutral-200 dark:border-neutral-700 hover:border-neutral-400'
+                      ? 'border-neutral-900 dark:border-white shadow-md ring-2 ring-neutral-900/20 dark:ring-white/30 bg-white dark:bg-[#1E1E1E]'
+                      : 'border-neutral-200/80 dark:border-white/10 hover:border-neutral-400 dark:hover:border-white/25 bg-neutral-50/60 dark:bg-[#161616]'
                   }`}
-                  style={{ backgroundColor: preset.bg }}
                 >
                   <span
-                    className="w-5 h-5 rounded-full border border-black/10 shadow-sm shrink-0 flex items-center justify-center relative overflow-hidden"
+                    className="w-5 h-5 rounded-full border border-black/10 dark:border-white/20 shadow-sm shrink-0 flex items-center justify-center relative overflow-hidden"
                     style={{
                       background: isMaterialYou
                         ? 'linear-gradient(135deg, #6366F1, #D97706)'
                         : (preset.previewColor || preset.baseColor)
                     }}
                   >
-                    {isCurrent && <Check className="w-3 h-3 text-white drop-shadow-sm" />}
+                    {isCurrent && <Check className="w-3 h-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" />}
                   </span>
-                  <span className="text-[10px] font-bold text-neutral-800 line-clamp-1">
+                  <span className={`text-[10px] font-bold line-clamp-1 ${
+                    isCurrent
+                      ? 'text-neutral-900 dark:text-white'
+                      : 'text-neutral-700 dark:text-neutral-300'
+                  }`}>
                     {preset.name}
                   </span>
                 </button>
@@ -1643,99 +1632,103 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenWalkthrough, o
         </FieldGroup>
       </div>
 
-      {/* ANDROID LIVE CLASS NOTIFICATIONS */}
-      <div className="pt-3 pb-0.5">
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-black uppercase tracking-wider text-neutral-400 dark:text-neutral-500">
-            Android Live Notifications
-          </span>
-          <Separator className="flex-1" />
-        </div>
-      </div>
-      <div className="bg-white dark:bg-[#171717] border border-neutral-200 dark:border-neutral-800 rounded-3xl p-6 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h3 className="text-sm font-extrabold text-neutral-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-              <Radio className="w-4 h-4 text-neutral-500 dark:text-neutral-400" /> ANDROID LIVE CLASS NOTIFICATIONS
-            </h3>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5 font-medium">
-              Real-time class countdown chronometer, live progress bar, and ongoing attendance tracking.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleTestLiveNotification}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-neutral-900 hover:bg-neutral-800 dark:bg-neutral-100 dark:hover:bg-white text-white dark:text-neutral-900 font-bold text-xs shadow-md transition-colors shrink-0"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Test Live Notification</span>
-          </button>
-        </div>
-
-        {/* Live Notification Progress Bar */}
-        <div className="p-4 rounded-2xl bg-neutral-50 dark:bg-[#262626] border border-neutral-200 dark:border-neutral-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-neutral-900 dark:text-white">
-                Live Class Countdown &amp; Progress Bar
+      {/* ANDROID LIVE CLASS NOTIFICATIONS (MOBILE ONLY) */}
+      {isAndroid() && (
+        <>
+          <div className="pt-3 pb-0.5">
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-black uppercase tracking-wider text-neutral-400 dark:text-neutral-500">
+                Android Live Notifications
               </span>
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-              </span>
+              <Separator className="flex-1" />
             </div>
-            <p className="text-[11px] text-neutral-500 dark:text-neutral-400 leading-relaxed">
-              Ongoing system notification with live chronometer countdown and direct &quot;Take Attendance&quot; quick action.
-            </p>
           </div>
+          <div className="bg-white dark:bg-[#171717] border border-neutral-200 dark:border-neutral-800 rounded-3xl p-6 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-sm font-extrabold text-neutral-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                  <Radio className="w-4 h-4 text-neutral-500 dark:text-neutral-400" /> ANDROID LIVE CLASS NOTIFICATIONS
+                </h3>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5 font-medium">
+                  Real-time class countdown chronometer, live progress bar, and ongoing attendance tracking.
+                </p>
+              </div>
 
-          <Switch
-            id="switch-live-notifications"
-            checked={liveNotificationsEnabled}
-            onCheckedChange={checked => {
-              setLiveNotificationsEnabled(checked);
-              if (currentSettings?.id) {
-                db.settings.update(currentSettings.id, { notificationsEnabled: checked });
-              }
-            }}
-          />
-        </div>
-
-        {/* Notification & System Permissions */}
-        <div className="p-4 rounded-2xl bg-neutral-50 dark:bg-[#262626] border border-neutral-200 dark:border-neutral-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Smartphone className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
-              <span className="text-xs font-bold text-neutral-900 dark:text-white">
-                Notification &amp; System Permissions
-              </span>
+              <button
+                type="button"
+                onClick={handleTestLiveNotification}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-neutral-900 hover:bg-neutral-800 dark:bg-neutral-100 dark:hover:bg-white text-white dark:text-neutral-900 font-bold text-xs shadow-md transition-colors shrink-0"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Test Live Notification</span>
+              </button>
             </div>
-            <p className="text-[11px] text-neutral-500 dark:text-neutral-400 leading-relaxed">
-              Configure app notification channels and adjust battery optimization to allow smooth background countdown.
-            </p>
-          </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={handleOpenOriginIslandSettings}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-[#333333] dark:hover:bg-[#404040] text-neutral-800 dark:text-neutral-200 font-bold text-xs border border-neutral-200 dark:border-neutral-700 transition-colors"
-            >
-              <ExternalLink className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" />
-              <span>Notification Settings</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleOpenBatterySettings}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-[#333333] dark:hover:bg-[#404040] text-neutral-800 dark:text-neutral-200 font-bold text-xs border border-neutral-200 dark:border-neutral-700 transition-colors"
-            >
-              <Zap className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" />
-              <span>Battery Settings</span>
-            </button>
+            {/* Live Notification Progress Bar */}
+            <div className="p-4 rounded-2xl bg-neutral-50 dark:bg-[#262626] border border-neutral-200 dark:border-neutral-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-neutral-900 dark:text-white">
+                    Live Class Countdown &amp; Progress Bar
+                  </span>
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                  </span>
+                </div>
+                <p className="text-[11px] text-neutral-500 dark:text-neutral-400 leading-relaxed">
+                  Ongoing system notification with live chronometer countdown and direct &quot;Take Attendance&quot; quick action.
+                </p>
+              </div>
+
+              <Switch
+                id="switch-live-notifications"
+                checked={liveNotificationsEnabled}
+                onCheckedChange={checked => {
+                  setLiveNotificationsEnabled(checked);
+                  if (currentSettings?.id) {
+                    db.settings.update(currentSettings.id, { notificationsEnabled: checked });
+                  }
+                }}
+              />
+            </div>
+
+            {/* Notification & System Permissions */}
+            <div className="p-4 rounded-2xl bg-neutral-50 dark:bg-[#262626] border border-neutral-200 dark:border-neutral-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Smartphone className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
+                  <span className="text-xs font-bold text-neutral-900 dark:text-white">
+                    Notification &amp; System Permissions
+                  </span>
+                </div>
+                <p className="text-[11px] text-neutral-500 dark:text-neutral-400 leading-relaxed">
+                  Configure app notification channels and adjust battery optimization to allow smooth background countdown.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleOpenOriginIslandSettings}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-[#333333] dark:hover:bg-[#404040] text-neutral-800 dark:text-neutral-200 font-bold text-xs border border-neutral-200 dark:border-neutral-700 transition-colors"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" />
+                  <span>Notification Settings</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleOpenBatterySettings}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-[#333333] dark:hover:bg-[#404040] text-neutral-800 dark:text-neutral-200 font-bold text-xs border border-neutral-200 dark:border-neutral-700 transition-colors"
+                >
+                  <Zap className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" />
+                  <span>Battery Settings</span>
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
 
       {/* AUTOMATED ATTENDANCE EXCEL EMAILING */}
       <div className="pt-3 pb-0.5">
@@ -2441,21 +2434,23 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenWalkthrough, o
 
         {/* Toggles */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="flex items-center justify-between p-4 rounded-2xl bg-neutral-50 dark:bg-[#262626] border border-neutral-200 dark:border-neutral-700">
-            <div className="space-y-0.5 pr-3">
-              <div className="flex items-center gap-2 font-bold text-xs text-neutral-900 dark:text-white">
-                <Smartphone className="w-3.5 h-3.5 text-neutral-500" />
-                <span>Touch Vibration</span>
+          {isAndroid() && (
+            <div className="flex items-center justify-between p-4 rounded-2xl bg-neutral-50 dark:bg-[#262626] border border-neutral-200 dark:border-neutral-700">
+              <div className="space-y-0.5 pr-3">
+                <div className="flex items-center gap-2 font-bold text-xs text-neutral-900 dark:text-white">
+                  <Smartphone className="w-3.5 h-3.5 text-neutral-500" />
+                  <span>Touch Vibration</span>
+                </div>
+                <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
+                  Vibrate on buttons, switches, and sliders.
+                </p>
               </div>
-              <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
-                Vibrate on buttons, switches, and sliders.
-              </p>
+              <Switch
+                checked={hapticsEnabled}
+                onCheckedChange={handleToggleHaptics}
+              />
             </div>
-            <Switch
-              checked={hapticsEnabled}
-              onCheckedChange={handleToggleHaptics}
-            />
-          </div>
+          )}
 
           <div className="flex items-center justify-between p-4 rounded-2xl bg-neutral-50 dark:bg-[#262626] border border-neutral-200 dark:border-neutral-700">
             <div className="space-y-0.5 pr-3">

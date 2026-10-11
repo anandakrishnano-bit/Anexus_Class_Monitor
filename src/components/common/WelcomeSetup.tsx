@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import * as React from 'react';
 import { createPortal } from 'react-dom';
 import { db } from '../../db';
 import { useNotification } from '../../context/NotificationContext';
@@ -9,7 +9,6 @@ import {
   User,
   School,
   Sparkles,
-  ClipboardCheck,
   Calendar,
   BellRing,
   Bot,
@@ -27,6 +26,15 @@ import {
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+  type CarouselApi,
+} from '@/components/ui/carousel';
 
 // localStorage keys for runtime Firebase config
 export const LS_FIREBASE_API_KEY        = '__rt_firebase_api_key';
@@ -51,71 +59,72 @@ interface StepConfig {
   buttonText: string;
 }
 
-const STEPS: Record<number, StepConfig> = {
-  1: {
+const STEPS: StepConfig[] = [
+  {
     bgColor: '#F9CAD2',
     badge: 'Class Workspace',
     title: 'Plan With\nConfidence',
     subtitle: 'Set up your class workspace and let Anexus handle the rest.',
     image: '/illustrations/setup_pink_dev.png',
-    buttonText: 'Continue  >>'
+    buttonText: 'Continue  >>',
   },
-  2: {
+  {
     bgColor: '#F9DA41',
     badge: 'Real-Time Logger',
     title: 'Track Attendance\nIn 1 Tap',
     subtitle: 'Auto-detects active periods, 1-tap toggles, and instant WhatsApp absentee summaries.',
     image: '/illustrations/setup_yellow_timetable.png',
-    buttonText: 'Continue  >>'
+    buttonText: 'Continue  >>',
   },
-  3: {
+  {
     bgColor: '#D6C7FE',
     badge: '10-Min Pre-Alert',
     title: 'Timetable Alerts\nThat Work For You',
     subtitle: 'Automated pre-class alerts and effortless day-by-day timetable slot management.',
     image: '/illustrations/setup_lavender_schedule.jpg',
-    buttonText: 'Continue  >>'
+    buttonText: 'Continue  >>',
   },
-  4: {
+  {
     bgColor: '#FD8B62',
     badge: 'Smart AI & Reports',
     title: 'Smart Assistant\n& Full Audits',
     subtitle: 'Ask anything about student attendance and export comprehensive Excel (.xlsx) spreadsheets.',
     image: '/illustrations/setup_coral_ai.jpg',
-    buttonText: 'Get Started  >>'
-  }
-};
+    buttonText: 'Get Started  >>',
+  },
+];
 
 export const WelcomeSetup: React.FC<WelcomeSetupProps> = ({ onComplete, isReplay = false }) => {
   const { showToast } = useNotification();
 
-  // Steps 1 to 4
-  const [step, setStep] = useState<number>(1);
-  const totalSteps = 4;
+  // Embla Carousel API
+  const [api, setApi] = React.useState<CarouselApi>();
+  const [current, setCurrent] = React.useState(0);
+  const [count, setCount] = React.useState(STEPS.length);
 
   // Server Config Drawer / Modal state
-  const [showServerConfig, setShowServerConfig] = useState<boolean>(false);
+  const [showServerConfig, setShowServerConfig] = React.useState<boolean>(false);
 
   // Server configuration fields
-  const [firebaseApiKey,        setFirebaseApiKey]        = useState('');
-  const [firebaseAuthDomain,    setFirebaseAuthDomain]    = useState('');
-  const [firebaseProjectId,     setFirebaseProjectId]     = useState('');
-  const [firebaseStorageBucket, setFirebaseStorageBucket] = useState('');
-  const [firebaseSenderId,      setFirebaseSenderId]      = useState('');
-  const [firebaseAppId,         setFirebaseAppId]         = useState('');
-  const [adminPasskey,          setAdminPasskey]          = useState('');
-  const [showApiKey,   setShowApiKey]   = useState(false);
-  const [showPasskey,  setShowPasskey]  = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [firebaseApiKey,        setFirebaseApiKey]        = React.useState('');
+  const [firebaseAuthDomain,    setFirebaseAuthDomain]    = React.useState('');
+  const [firebaseProjectId,     setFirebaseProjectId]     = React.useState('');
+  const [firebaseStorageBucket, setFirebaseStorageBucket] = React.useState('');
+  const [firebaseSenderId,      setFirebaseSenderId]      = React.useState('');
+  const [firebaseAppId,         setFirebaseAppId]         = React.useState('');
+  const [adminPasskey,          setAdminPasskey]          = React.useState('');
+  const [showApiKey,   setShowApiKey]   = React.useState(false);
+  const [showPasskey,  setShowPasskey]  = React.useState(false);
+  const [showAdvanced, setShowAdvanced] = React.useState(false);
 
   // Class setup fields
-  const [className, setClassName] = useState('');
-  const [section,   setSection]   = useState('');
-  const [repName,   setRepName]   = useState('');
-  const [dept,      setDept]      = useState('');
+  const [className, setClassName] = React.useState('');
+  const [section,   setSection]   = React.useState('');
+  const [repName,   setRepName]   = React.useState('');
+  const [dept,      setDept]      = React.useState('');
 
   // Pre-fill from localStorage & Dexie on open
-  useEffect(() => {
+  React.useEffect(() => {
     try {
       setFirebaseApiKey(localStorage.getItem(LS_FIREBASE_API_KEY) || '');
       setFirebaseAuthDomain(localStorage.getItem(LS_FIREBASE_AUTH_DOMAIN) || '');
@@ -136,6 +145,24 @@ export const WelcomeSetup: React.FC<WelcomeSetupProps> = ({ onComplete, isReplay
     });
   }, []);
 
+  // Sync Carousel API events
+  React.useEffect(() => {
+    if (!api) return;
+    setCount(api.scrollSnapList().length);
+    setCurrent(api.selectedScrollSnap());
+
+    const onSelect = () => {
+      setCurrent(api.selectedScrollSnap());
+    };
+
+    api.on('select', onSelect);
+    api.on('reInit', onSelect);
+
+    return () => {
+      api.off('select', onSelect);
+    };
+  }, [api]);
+
   const saveFirebaseConfig = () => {
     try {
       if (firebaseApiKey.trim())        localStorage.setItem(LS_FIREBASE_API_KEY, firebaseApiKey.trim());
@@ -150,8 +177,8 @@ export const WelcomeSetup: React.FC<WelcomeSetupProps> = ({ onComplete, isReplay
 
   const handleNext = () => {
     triggerHaptic('light');
-    if (step < totalSteps) {
-      setStep(prev => prev + 1);
+    if (current < count - 1) {
+      api?.scrollNext();
     } else {
       handleFinish();
     }
@@ -159,7 +186,9 @@ export const WelcomeSetup: React.FC<WelcomeSetupProps> = ({ onComplete, isReplay
 
   const handlePrev = () => {
     triggerHaptic('light');
-    if (step > 1) setStep(prev => prev - 1);
+    if (current > 0) {
+      api?.scrollPrev();
+    }
   };
 
   const handleFinish = async () => {
@@ -193,7 +222,7 @@ export const WelcomeSetup: React.FC<WelcomeSetupProps> = ({ onComplete, isReplay
     onComplete();
   };
 
-  useEffect(() => {
+  React.useEffect(() => {
     document.body.style.overflow = 'hidden';
     document.body.setAttribute('data-dialog-open', 'true');
     return () => {
@@ -202,25 +231,25 @@ export const WelcomeSetup: React.FC<WelcomeSetupProps> = ({ onComplete, isReplay
     };
   }, []);
 
-  const currentStepConfig = STEPS[step] || STEPS[1];
+  const currentStepConfig = STEPS[current] || STEPS[0];
   const isFirebasePartiallyFilled = !!(firebaseApiKey.trim() || firebaseProjectId.trim());
 
   return createPortal(
     <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/85 backdrop-blur-xl p-3 sm:p-4 modal-backdrop-enter">
       {/* Mobile-First Playful Card with Seamless Pastel Background */}
       <div
-        className="w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden transition-colors duration-500 flex flex-col max-h-[92vh] border border-black/10 relative"
+        className="w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden transition-colors duration-500 flex flex-col max-h-[94vh] border border-black/10 relative"
         style={{ backgroundColor: currentStepConfig.bgColor }}
       >
         {/* Top Header & Navigation Bar */}
-        <div className="px-6 pt-6 pb-2 flex items-center justify-between z-10">
+        <div className="px-6 pt-5 pb-2 flex items-center justify-between z-20">
           <div className="flex items-center gap-2">
-            {step > 1 ? (
+            {current > 0 ? (
               <button
                 type="button"
                 onClick={handlePrev}
                 className="w-9 h-9 rounded-full bg-black/10 hover:bg-black/20 text-neutral-900 flex items-center justify-center transition-all active:scale-95"
-                title="Previous Step"
+                title="Previous Slide"
               >
                 <ArrowLeft className="w-4 h-4" />
               </button>
@@ -250,6 +279,7 @@ export const WelcomeSetup: React.FC<WelcomeSetupProps> = ({ onComplete, isReplay
                 type="button"
                 onClick={onComplete}
                 className="w-9 h-9 rounded-full bg-black/10 hover:bg-black/20 text-neutral-900 flex items-center justify-center transition-all active:scale-95"
+                title="Close Walkthrough"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -257,170 +287,214 @@ export const WelcomeSetup: React.FC<WelcomeSetupProps> = ({ onComplete, isReplay
           </div>
         </div>
 
-        {/* Scrollable Main Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-2 space-y-4 flex flex-col justify-between scrollbar-none">
-          {/* Headline & Subtitle */}
-          <div className="space-y-1.5">
-            <h1 className="text-2xl sm:text-3xl font-black text-neutral-900 tracking-tight leading-tight whitespace-pre-line">
-              {currentStepConfig.title}
-            </h1>
-            <p className="text-xs sm:text-sm font-semibold text-neutral-800/80 leading-relaxed">
-              {currentStepConfig.subtitle}
-            </p>
-          </div>
+        {/* Shadcn UI Carousel Container */}
+        <div className="flex-1 overflow-hidden flex flex-col justify-center px-4 py-1">
+          <Carousel
+            setApi={setApi}
+            className="w-full"
+            opts={{
+              loop: false,
+            }}
+          >
+            <CarouselContent>
+              {STEPS.map((stepItem, index) => (
+                <CarouselItem
+                  key={index}
+                  className="rounded-3xl"
+                  style={{ backgroundColor: stepItem.bgColor }}
+                >
+                  <div className="p-1 rounded-3xl" style={{ backgroundColor: stepItem.bgColor }}>
+                    <Card
+                      style={{ backgroundColor: stepItem.bgColor }}
+                      className="border-0 shadow-none bg-transparent dark:bg-transparent text-neutral-900 dark:text-neutral-900"
+                    >
+                      <CardContent
+                        style={{ backgroundColor: stepItem.bgColor }}
+                        className="p-2 sm:p-3 flex flex-col justify-between max-h-[64vh] overflow-y-auto scrollbar-none space-y-3 text-neutral-900 dark:text-neutral-900 rounded-2xl bg-transparent dark:bg-transparent"
+                      >
+                        {/* Headline & Subtitle */}
+                        <div className="space-y-1.5 text-left">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-neutral-800/80 dark:text-neutral-800/80">
+                              Step {index + 1} of {STEPS.length}
+                            </span>
+                            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-black/10 text-neutral-900 dark:text-neutral-900">
+                              {stepItem.badge}
+                            </span>
+                          </div>
+                          <h1 className="text-2xl sm:text-3xl font-black text-neutral-900 dark:text-neutral-900 tracking-tight leading-tight whitespace-pre-line">
+                            {stepItem.title}
+                          </h1>
+                          <p className="text-xs sm:text-sm font-semibold text-neutral-800/80 dark:text-neutral-800/80 leading-relaxed">
+                            {stepItem.subtitle}
+                          </p>
+                        </div>
 
-          {/* Seamless Illustration Container */}
-          <div className="relative flex items-center justify-center my-1 select-none">
-            <div
-              className="w-full max-w-[280px] sm:max-w-[300px] aspect-square rounded-3xl overflow-hidden flex items-center justify-center"
-              style={{ backgroundColor: currentStepConfig.bgColor }}
-            >
-              <img
-                src={currentStepConfig.image}
-                alt={currentStepConfig.title}
-                className="w-full h-full object-contain filter contrast-105"
-                style={{ backgroundColor: currentStepConfig.bgColor }}
-              />
-            </div>
-          </div>
+                        {/* Seamless Illustration Container */}
+                        <div className="relative flex items-center justify-center my-1 select-none">
+                          <div
+                            className="w-full max-w-[240px] sm:max-w-[260px] aspect-square rounded-3xl overflow-hidden flex items-center justify-center"
+                            style={{ backgroundColor: stepItem.bgColor }}
+                          >
+                            <img
+                              src={stepItem.image}
+                              alt={stepItem.title}
+                              className="w-full h-full object-contain filter contrast-105"
+                              style={{ backgroundColor: stepItem.bgColor }}
+                            />
+                          </div>
+                        </div>
 
-          {/* Step-Specific Controls */}
-          {step === 1 && (
-            <div className="p-4 rounded-3xl bg-white/70 backdrop-blur-md border border-black/10 shadow-sm space-y-3 animate-fade-in">
-              <FieldGroup className="text-xs font-bold space-y-2.5">
-                <Field>
-                  <FieldLabel htmlFor="walkthrough-repname" className="text-neutral-900 flex items-center gap-1.5 text-xs">
-                    <User className="w-3.5 h-3.5" /> Your Name (Class Representative)
-                  </FieldLabel>
-                  <Input
-                    id="walkthrough-repname"
-                    placeholder="e.g. John Doe"
-                    value={repName}
-                    onChange={e => setRepName(e.target.value)}
-                    className="bg-white/90 border-black/15 text-neutral-900 rounded-xl h-9 text-xs font-semibold"
-                  />
-                </Field>
-                <div className="grid grid-cols-2 gap-2.5">
-                  <Field>
-                    <FieldLabel htmlFor="walkthrough-classname" className="text-neutral-900 flex items-center gap-1.5 text-xs">
-                      <School className="w-3.5 h-3.5" /> Class Name
-                    </FieldLabel>
-                    <Input
-                      id="walkthrough-classname"
-                      placeholder="e.g. CS-3A"
-                      value={className}
-                      onChange={e => setClassName(e.target.value)}
-                      className="bg-white/90 border-black/15 text-neutral-900 rounded-xl h-9 text-xs font-semibold"
-                    />
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="walkthrough-section" className="text-neutral-900 text-xs">
-                      Section
-                    </FieldLabel>
-                    <Input
-                      id="walkthrough-section"
-                      placeholder="e.g. Sec A"
-                      value={section}
-                      onChange={e => setSection(e.target.value)}
-                      className="bg-white/90 border-black/15 text-neutral-900 rounded-xl h-9 text-xs font-semibold"
-                    />
-                  </Field>
-                </div>
-                <Field>
-                  <FieldLabel htmlFor="walkthrough-dept" className="text-neutral-900 text-xs">
-                    Department
-                  </FieldLabel>
-                  <Input
-                    id="walkthrough-dept"
-                    placeholder="e.g. Computer Science"
-                    value={dept}
-                    onChange={e => setDept(e.target.value)}
-                    className="bg-white/90 border-black/15 text-neutral-900 rounded-xl h-9 text-xs font-semibold"
-                  />
-                </Field>
-              </FieldGroup>
-            </div>
-          )}
+                        {/* Step 1: Interactive Class Workspace Inputs */}
+                        {index === 0 && (
+                          <div className="p-4 rounded-3xl bg-white/80 dark:bg-white/80 backdrop-blur-md border border-black/10 shadow-sm space-y-3 animate-fade-in text-left">
+                            <FieldGroup className="text-xs font-bold space-y-2.5">
+                              <Field>
+                                <FieldLabel htmlFor="walkthrough-repname" className="text-neutral-900 dark:text-neutral-900 flex items-center gap-1.5 text-xs font-bold">
+                                  <User className="w-3.5 h-3.5 text-neutral-900" /> Your Name (Class Representative)
+                                </FieldLabel>
+                                <Input
+                                  id="walkthrough-repname"
+                                  placeholder="e.g. John Doe"
+                                  value={repName}
+                                  onChange={e => setRepName(e.target.value)}
+                                  className="bg-white/95 dark:bg-white/95 border-black/15 text-neutral-900 dark:!text-neutral-900 rounded-xl h-9 text-xs font-semibold"
+                                />
+                              </Field>
+                              <div className="grid grid-cols-2 gap-2.5">
+                                <Field>
+                                  <FieldLabel htmlFor="walkthrough-classname" className="text-neutral-900 dark:text-neutral-900 flex items-center gap-1.5 text-xs font-bold">
+                                    <School className="w-3.5 h-3.5 text-neutral-900" /> Class Name
+                                  </FieldLabel>
+                                  <Input
+                                    id="walkthrough-classname"
+                                    placeholder="e.g. CS-3A"
+                                    value={className}
+                                    onChange={e => setClassName(e.target.value)}
+                                    className="bg-white/95 dark:bg-white/95 border-black/15 text-neutral-900 dark:!text-neutral-900 rounded-xl h-9 text-xs font-semibold"
+                                  />
+                                </Field>
+                                <Field>
+                                  <FieldLabel htmlFor="walkthrough-section" className="text-neutral-900 dark:text-neutral-900 text-xs font-bold">
+                                    Section
+                                  </FieldLabel>
+                                  <Input
+                                    id="walkthrough-section"
+                                    placeholder="e.g. Sec A"
+                                    value={section}
+                                    onChange={e => setSection(e.target.value)}
+                                    className="bg-white/95 dark:bg-white/95 border-black/15 text-neutral-900 dark:!text-neutral-900 rounded-xl h-9 text-xs font-semibold"
+                                  />
+                                </Field>
+                              </div>
+                              <Field>
+                                <FieldLabel htmlFor="walkthrough-dept" className="text-neutral-900 dark:text-neutral-900 text-xs font-bold">
+                                  Department
+                                </FieldLabel>
+                                <Input
+                                  id="walkthrough-dept"
+                                  placeholder="e.g. Computer Science"
+                                  value={dept}
+                                  onChange={e => setDept(e.target.value)}
+                                  className="bg-white/95 dark:bg-white/95 border-black/15 text-neutral-900 dark:!text-neutral-900 rounded-xl h-9 text-xs font-semibold"
+                                />
+                              </Field>
+                            </FieldGroup>
+                          </div>
+                        )}
 
-          {step === 2 && (
-            <div className="p-3.5 rounded-3xl bg-black/10 backdrop-blur-md space-y-2 text-xs font-bold text-neutral-900 animate-fade-in">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-800 shrink-0" />
-                <span>1-Tap quick toggle between Present & Absent</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-800 shrink-0" />
-                <span>One-click copy for WhatsApp & Email absentee summary</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-800 shrink-0" />
-                <span>Private local database: 100% offline & secure</span>
-              </div>
-            </div>
-          )}
+                        {/* Step 2: Attendance Tracking Highlights */}
+                        {index === 1 && (
+                          <div className="p-3.5 rounded-3xl bg-black/10 dark:bg-black/10 backdrop-blur-md space-y-2 text-xs font-bold text-neutral-900 dark:text-neutral-900 animate-fade-in text-left">
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-800 shrink-0" />
+                              <span>1-Tap quick toggle between Present & Absent</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-800 shrink-0" />
+                              <span>One-click copy for WhatsApp & Email absentee summary</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-800 shrink-0" />
+                              <span>Private local database: 100% offline & secure</span>
+                            </div>
+                          </div>
+                        )}
 
-          {step === 3 && (
-            <div className="p-3.5 rounded-3xl bg-black/10 backdrop-blur-md space-y-2 text-xs font-bold text-neutral-900 animate-fade-in">
-              <div className="flex items-center gap-2">
-                <BellRing className="w-4 h-4 text-neutral-900 shrink-0" />
-                <span>10-Minute Pre-Class Alert chimes before lecture starts</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-neutral-900 shrink-0" />
-                <span>Quick drag-and-drop timetable slot management</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-800 shrink-0" />
-                <span>Automatic skips on official holidays and weekends</span>
-              </div>
-            </div>
-          )}
+                        {/* Step 3: Timetable & Notification Highlights */}
+                        {index === 2 && (
+                          <div className="p-3.5 rounded-3xl bg-black/10 dark:bg-black/10 backdrop-blur-md space-y-2 text-xs font-bold text-neutral-900 dark:text-neutral-900 animate-fade-in text-left">
+                            <div className="flex items-center gap-2">
+                              <BellRing className="w-4 h-4 text-neutral-900 shrink-0" />
+                              <span>10-Minute Pre-Class Alert chimes before lecture starts</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Calendar className="w-4 h-4 text-neutral-900 shrink-0" />
+                              <span>Quick drag-and-drop timetable slot management</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-800 shrink-0" />
+                              <span>Automatic skips on official holidays and weekends</span>
+                            </div>
+                          </div>
+                        )}
 
-          {step === 4 && (
-            <div className="p-3.5 rounded-3xl bg-black/10 backdrop-blur-md space-y-2 text-xs font-bold text-neutral-900 animate-fade-in">
-              <div className="flex items-center gap-2">
-                <Bot className="w-4 h-4 text-neutral-900 shrink-0" />
-                <span>Local AI Chat: Instant answers to attendance queries</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <FileSpreadsheet className="w-4 h-4 text-neutral-900 shrink-0" />
-                <span>1-Click Excel (.xlsx) comprehensive monthly audit sheets</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-amber-900 shrink-0" />
-                <span>Streak Rewards: Celebrate class attendance consistency</span>
-              </div>
-            </div>
-          )}
+                        {/* Step 4: AI & Reporting Highlights */}
+                        {index === 3 && (
+                          <div className="p-3.5 rounded-3xl bg-black/10 dark:bg-black/10 backdrop-blur-md space-y-2 text-xs font-bold text-neutral-900 dark:text-neutral-900 animate-fade-in text-left">
+                            <div className="flex items-center gap-2">
+                              <Bot className="w-4 h-4 text-neutral-900 shrink-0" />
+                              <span>Local AI Chat: Instant answers to attendance queries</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <FileSpreadsheet className="w-4 h-4 text-neutral-900 shrink-0" />
+                              <span>1-Click Excel (.xlsx) comprehensive monthly audit sheets</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Sparkles className="w-4 h-4 text-amber-900 shrink-0" />
+                              <span>Streak Rewards: Celebrate class attendance consistency</span>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+
+            <CarouselPrevious className="bg-black/10 hover:bg-black/20 text-neutral-900 border-0" />
+            <CarouselNext className="bg-black/10 hover:bg-black/20 text-neutral-900 border-0" />
+          </Carousel>
         </div>
 
         {/* Bottom Pagination & Primary Dark Pill Button */}
-        <div className="px-6 pb-6 pt-3 space-y-3 z-10">
+        <div className="px-6 pb-6 pt-2 space-y-3 z-20">
           {/* Pagination Dots */}
           <div className="flex items-center justify-center gap-1.5">
-            {[1, 2, 3, 4].map(idx => (
+            {STEPS.map((_, idx) => (
               <button
                 key={idx}
                 type="button"
                 onClick={() => {
                   triggerHaptic('light');
-                  setStep(idx);
+                  api?.scrollTo(idx);
                 }}
                 className={`h-2 rounded-full transition-all duration-300 ${
-                  step === idx ? 'w-6 bg-neutral-900' : 'w-2 bg-neutral-900/30 hover:bg-neutral-900/50'
+                  current === idx ? 'w-6 bg-neutral-900' : 'w-2 bg-neutral-900/30 hover:bg-neutral-900/50'
                 }`}
-                aria-label={`Go to slide ${idx}`}
+                aria-label={`Go to slide ${idx + 1}`}
               />
             ))}
           </div>
 
           {/* Action Row */}
           <div className="flex items-center gap-3">
-            {step < totalSteps && (
+            {current < count - 1 && (
               <button
                 type="button"
                 onClick={handleFinish}
-                className="text-xs font-bold text-neutral-900/70 hover:text-neutral-900 px-3 py-2 transition-colors"
+                className="text-xs font-bold text-neutral-900/70 hover:text-neutral-900 px-3 py-2 transition-colors active:scale-95"
               >
                 Skip
               </button>
@@ -439,7 +513,7 @@ export const WelcomeSetup: React.FC<WelcomeSetupProps> = ({ onComplete, isReplay
 
         {/* SERVER CONFIGURATION MODAL / DRAWER */}
         {showServerConfig && (
-          <div className="absolute inset-0 z-50 bg-white/95 dark:bg-[#171717]/95 backdrop-blur-xl p-6 rounded-[2.5rem] flex flex-col justify-between overflow-y-auto animate-fade-in">
+          <div className="absolute inset-0 z-50 bg-white/95 dark:bg-[#171717]/95 backdrop-blur-xl p-6 rounded-[2.5rem] flex flex-col justify-between overflow-y-auto animate-fade-in text-neutral-900 dark:text-neutral-100">
             <div className="space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-neutral-200 dark:border-neutral-800">
                 <div className="flex items-center gap-2">

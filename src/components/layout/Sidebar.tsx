@@ -52,7 +52,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
     <ShadcnSidebar
       collapsible="icon"
       className={cn(
-        "hidden md:flex transition-all duration-300 ease-in-out shrink-0 !top-0 !h-full"
+        "hidden md:flex transition-all duration-300 ease-in-out shrink-0 !top-0 !h-full !bg-white dark:!bg-black !border-r !border-neutral-200 dark:!border-neutral-800"
       )}
     >
       <SidebarHeader>
@@ -93,6 +93,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
                     <SidebarMenuButton
                       isActive={isActive}
                       tooltip={item.label}
+                      className={isActive ? '!bg-[var(--accent-tertiary)] !text-white shadow-sm' : ''}
                       onClick={() => {
                         triggerHaptic('light');
                         setActiveTab(item.id);
@@ -101,13 +102,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
                       <Icon
                         className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
                           isActive
-                            ? 'scale-110 text-white dark:text-neutral-900'
+                            ? 'scale-110 !text-white'
                             : 'text-neutral-500 dark:text-neutral-400 group-hover:scale-105'
                         }`}
                       />
                       {open && <span className="flex-1 text-left truncate">{item.label}</span>}
                       {open && isActive && (
-                        <SidebarMenuBadge className="w-2 h-2 p-0 bg-[var(--accent-tertiary)] shadow-[0_0_6px_var(--accent-tertiary)] animate-badge-pop" />
+                        <SidebarMenuBadge className="w-2 h-2 p-0 bg-white/40 shadow-[0_0_6px_rgba(255,255,255,0.6)] animate-badge-pop" />
                       )}
                     </SidebarMenuButton>
                   </SidebarMenuItem>

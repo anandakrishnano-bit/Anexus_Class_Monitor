@@ -21,6 +21,7 @@ import {
 import { format, isToday, isPast } from 'date-fns';
 import { Separator } from '@/components/ui/separator';
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import { ThemeToggleButton } from '../common/ThemeToggleButton';
 
 interface NavbarProps {
   activeTab: string;
@@ -154,13 +155,13 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
 
   return (
     <header
-      className={`sticky top-0 z-30 w-full bg-white/95 dark:bg-black/95 backdrop-blur-md px-3.5 sm:px-6 lg:px-8 border-neutral-200/80 dark:border-neutral-800 transition-all duration-500 ease-in-out ${
+      className={`sticky top-0 z-30 w-full px-3 sm:px-6 pt-2 sm:pt-3 pb-1 pointer-events-none transition-all duration-500 ease-in-out ${
         isAttendance
-          ? '-translate-y-full opacity-0 pointer-events-none max-h-0 py-0 border-b-transparent overflow-hidden'
-          : 'translate-y-0 opacity-100 max-h-28 pt-[calc(env(safe-area-inset-top,0px)+0.5rem)] pb-2.5 sm:pb-3 border-b border-b-neutral-200/80 dark:border-b-neutral-800'
+          ? '-translate-y-full opacity-0 max-h-0 py-0 overflow-hidden'
+          : 'translate-y-0 opacity-100 max-h-28'
       }`}
     >
-      <div className="max-w-4xl mx-auto flex items-center justify-between gap-2 md:max-w-full">
+      <div className="pointer-events-auto max-w-4xl mx-auto md:max-w-full rounded-full bg-white/90 dark:bg-[#141416]/90 backdrop-blur-2xl border border-neutral-200/90 dark:border-white/10 shadow-lg shadow-black/5 dark:shadow-black/50 px-3.5 sm:px-5 py-2 sm:py-2.5 flex items-center justify-between gap-2 ring-1 ring-black/5 dark:ring-white/5">
         {/* Profile Avatar & Greeting with SidebarTrigger on Desktop */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           <SidebarTrigger className="hidden md:flex shrink-0" />
@@ -172,7 +173,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
             className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer group select-none"
             title="View & Edit Profile"
           >
-            <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-2xl overflow-hidden bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 flex items-center justify-center shrink-0 shadow-md ring-1 ring-[var(--accent-tertiary-subtle)] group-hover:ring-2 group-hover:ring-[var(--accent-tertiary)] transition-all">
+            <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-2xl overflow-hidden bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 flex items-center justify-center shrink-0 shadow-md ring-1 ring-neutral-200 dark:ring-neutral-800 group-hover:ring-neutral-400 dark:group-hover:ring-neutral-600 transition-all">
               {profilePhoto ? (
                 <img src={profilePhoto} alt={classRep} className="w-full h-full object-cover" />
               ) : (
@@ -188,7 +189,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                 <span>•</span>
                 <span>{section}</span>
                 <span>•</span>
-                <span className="font-bold text-[var(--accent-tertiary)]">{currentPeriodLabel}</span>
+                <span className="font-bold text-neutral-900 dark:text-neutral-100">{currentPeriodLabel}</span>
               </p>
             </div>
           </div>
@@ -206,7 +207,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
               title="Notification Center"
               className={`w-10 h-10 rounded-full border text-neutral-700 dark:text-neutral-200 flex items-center justify-center shadow-sm transition-all relative ${
                 isNotifOpen
-                  ? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900 border-neutral-900 dark:border-neutral-100 ring-2 ring-[var(--accent-tertiary-subtle)]'
+                  ? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900 border-neutral-900 dark:border-neutral-100 ring-2 ring-neutral-300 dark:ring-neutral-700'
                   : 'bg-white dark:bg-[#171717] border-neutral-200 dark:border-neutral-800 hover:bg-neutral-100 dark:hover:bg-[#262626]'
               }`}
             >
@@ -347,33 +348,8 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
             )}
           </div>
 
-          {/* Theme Toggle Button with Dribbble-style circular expand/contract */}
-          <button
-            onClick={(e) => {
-              triggerHaptic('medium');
-              toggleTheme(e);
-            }}
-            title={isDark ? 'Switch to Light mode' : 'Switch to Dark mode'}
-            aria-label="Toggle dark and light theme"
-            className="w-10 h-10 rounded-full bg-white dark:bg-[#171717] border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-200 flex items-center justify-center shadow-sm hover:bg-neutral-50 dark:hover:bg-[#262626] transition-all duration-200 active:scale-90 relative overflow-hidden group"
-          >
-            <div className="relative w-4 h-4 flex items-center justify-center">
-              <Sun
-                className={`w-4 h-4 text-amber-500 absolute transition-all duration-300 transform ${
-                  isDark
-                    ? 'rotate-90 scale-0 opacity-0'
-                    : 'rotate-0 scale-100 opacity-100'
-                }`}
-              />
-              <Moon
-                className={`w-4 h-4 text-neutral-200 absolute transition-all duration-300 transform ${
-                  isDark
-                    ? 'rotate-0 scale-100 opacity-100'
-                    : '-rotate-90 scale-0 opacity-0'
-                }`}
-              />
-            </div>
-          </button>
+          {/* Theme Toggle Button with Light/Dark mode Lottie morph animation */}
+          <ThemeToggleButton />
 
           {/* Direct Take Attendance Action Button */}
           <button

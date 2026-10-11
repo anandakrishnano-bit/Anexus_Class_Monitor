@@ -67,116 +67,80 @@
     --theme-accent: #FB7185;
   }
 
-  /* --- LIGHT (WHITE) MODE ADAPTATION --- */
+  /* --- LIGHT (WHITE) MODE THEMED CANVAS --- */
   html:not(.dark),
   :root:not(.dark) body,
   :root:not(.dark) .bg-\[\#FAFAFA\] {
-    background-color: var(--theme-bg, #FFF0F3) !important;
+    background-color: var(--theme-bg, #FAFAFA);
   }
 
-  /* Foreground things in light mode are clean white */
+  /* Crisp white elevated foreground surfaces in light mode */
   :root:not(.dark) .bg-white {
-    background-color: #FFFFFF !important;
+    background-color: #FFFFFF;
   }
 
-  /* Primary colors given to black in white mode */
-  :root:not(.dark) .bg-neutral-900,
-  :root:not(.dark) .bg-black {
-    background-color: var(--theme-primary, #0A0A0A) !important;
-    color: var(--theme-primary-text, #FFFFFF) !important;
-  }
-  :root:not(.dark) .bg-neutral-900 svg,
-  :root:not(.dark) .bg-black svg {
-    color: currentColor;
-  }
-
-  :root:not(.dark) .text-neutral-900,
-  :root:not(.dark) .text-black {
-    color: var(--theme-primary, #0A0A0A) !important;
-  }
-
-  :root:not(.dark) .border-neutral-900,
-  :root:not(.dark) .border-black {
-    border-color: var(--theme-primary, #0A0A0A) !important;
-  }
-
-  /* Secondary & tertiary colors given to greys in white mode */
+  /* Secondary surfaces in light mode */
   :root:not(.dark) .bg-neutral-100 {
-    background-color: var(--theme-secondary-bg, #FDE2E7) !important;
+    background-color: var(--theme-secondary-bg, #F4F4F5);
   }
 
-  :root:not(.dark) .border-neutral-100,
+  /* Subtle borders adopt theme tint in light mode */
   :root:not(.dark) .border-neutral-200,
   :root:not(.dark) .border-neutral-200\/80,
   :root:not(.dark) .border-neutral-200\/90 {
-    border-color: var(--theme-border, #FBCFE8) !important;
+    border-color: var(--theme-border, #E5E5E5);
   }
 
-  :root:not(.dark) .text-neutral-500,
-  :root:not(.dark) .text-neutral-400 {
-    color: var(--theme-muted, #835360) !important;
-  }
-
-  :root:not(.dark) .text-neutral-600,
-  :root:not(.dark) .text-neutral-700 {
-    color: var(--theme-secondary, #BE185D) !important;
-  }
-
-  /* --- DARK MODE ADAPTATION (SOLID BLACK OLED BACKGROUND) --- */
+  /* --- DARK MODE THEMED CANVAS & ELEVATED SURFACES --- */
   html.dark,
   html.dark body,
   .dark body,
   .dark .bg-\[\#0A0A0A\],
   .dark .dark\:bg-\[\#0A0A0A\],
-  .dark .dark\:bg-black,
-  .dark .bg-black {
-    background-color: #000000 !important;
+  .dark .dark\:bg-black {
+    background-color: var(--theme-bg, #0F0A0D);
   }
 
+  /* Elevated surfaces in dark mode adopt subtle theme surface */
   .dark .dark\:bg-\[\#171717\] {
-    background-color: var(--theme-surface, #121212) !important;
+    background-color: var(--theme-surface, #1A1216);
   }
 
-  /* Primary colors given to whites in dark mode */
-  .dark .dark\:bg-white,
-  .dark .dark\:bg-neutral-100 {
-    background-color: var(--theme-primary, #FFFFFF) !important;
-    color: var(--theme-primary-text, #0A0A0A) !important;
-  }
-  .dark .dark\:bg-white svg,
-  .dark .dark\:bg-neutral-100 svg {
-    color: currentColor;
-  }
-
-  .dark .dark\:text-white,
-  .dark .dark\:text-neutral-100 {
-    color: var(--theme-primary, #EDEDED) !important;
-  }
-
-  .dark .dark\:border-white,
-  .dark .dark\:border-neutral-100 {
-    border-color: var(--theme-primary, #EDEDED) !important;
-  }
-
-  /* Secondary & tertiary in dark mode */
   .dark .dark\:bg-neutral-800,
   .dark .dark\:bg-\[\#262626\] {
-    background-color: var(--theme-secondary-bg, #1C1C1E) !important;
+    background-color: var(--theme-secondary-bg, #2B151F);
   }
 
   .dark .dark\:border-neutral-800,
-  .dark .dark\:border-neutral-700 {
-    border-color: var(--theme-border, #282828) !important;
+  .dark .dark\:border-neutral-700,
+  .dark .dark\:border-white\/10 {
+    border-color: var(--theme-border, #421D2C);
   }
 
-  .dark .dark\:text-neutral-400,
-  .dark .dark\:text-neutral-500 {
-    color: var(--theme-muted, #A1A1A1) !important;
+  /* Ultra-smooth View Transition for circular theme reveal (120fps sync) */
+  ::view-transition-old(root) {
+    animation: none;
+    z-index: 1;
+    mix-blend-mode: normal;
+  }
+  ::view-transition-new(root) {
+    animation: theme-circular-ripple 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    z-index: 9999999;
+    mix-blend-mode: normal;
+  }
+  ::view-transition-image-pair(root) {
+    isolation: isolate;
   }
 
-  .dark .dark\:text-neutral-200,
-  .dark .dark\:text-neutral-300 {
-    color: var(--theme-secondary, #D4D4D8) !important;
+  @keyframes theme-circular-ripple {
+    from {
+      clip-path: circle(0px at var(--ripple-x, 50vw) var(--ripple-y, 50vh));
+      -webkit-clip-path: circle(0px at var(--ripple-x, 50vw) var(--ripple-y, 50vh));
+    }
+    to {
+      clip-path: circle(var(--ripple-r, 150vmax) at var(--ripple-x, 50vw) var(--ripple-y, 50vh));
+      -webkit-clip-path: circle(var(--ripple-r, 150vmax) at var(--ripple-x, 50vw) var(--ripple-y, 50vh));
+    }
   }
 
   body {
@@ -300,6 +264,39 @@
 
 .animate-badge-pop {
   animation: badgePop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Fluid Dock & Tab Animations */
+@keyframes fluidPop {
+  0% { transform: scale(1); }
+  25% { transform: scale(0.86) translateY(1.5px); }
+  55% { transform: scale(1.15) translateY(-1.5px); }
+  78% { transform: scale(0.97) translateY(0); }
+  100% { transform: scale(1) translateY(0); }
+}
+
+@keyframes fluidDotDrop {
+  0% { transform: scale(0) translateY(-5px); opacity: 0; }
+  50% { transform: scale(1.35) translateY(0); opacity: 1; }
+  75% { transform: scale(0.92) translateY(0); opacity: 1; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+@keyframes fluidRipple {
+  0% { transform: scale(0.4); opacity: 0.6; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+.animate-fluid-pop {
+  animation: fluidPop 0.52s cubic-bezier(0.34, 1.4, 0.64, 1) forwards;
+}
+
+.animate-fluid-dot {
+  animation: fluidDotDrop 0.48s cubic-bezier(0.34, 1.4, 0.64, 1) forwards;
+}
+
+.animate-fluid-ripple {
+  animation: fluidRipple 0.6s ease-out forwards;
 }
 
 /* Premium clean illustration presentation */

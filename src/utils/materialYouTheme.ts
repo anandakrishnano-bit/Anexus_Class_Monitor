@@ -141,11 +141,13 @@ export function buildDynamicMaterialYouPalette(colors: MaterialYouColors): Theme
   const lightMuted = hslToHex(h, 25, 45);
 
   // Dark Mode Tokens
+  const darkBg = hslToHex(h, 25, 7);           // rich tinted dark background
+  const darkSurface = hslToHex(h, 20, 11);      // tinted elevated dark card surface
+  const darkSecondaryBg = hslToHex(h, 22, 16);  // secondary surface
+  const darkBorder = hslToHex(h, 25, 22);       // subtle tinted border
   const darkPrimary = hslToHex(h, 80, 78);       // luminous primary replacing white
   const darkCompAccent = hslToHex(compH, 85, 70); // luminous complementary accent
   const darkCompSecondary = hslToHex(compH, 75, 75);
-  const darkSecondaryBg = hslToHex(h, 25, 12);
-  const darkBorder = hslToHex(h, 25, 20);
   const darkMuted = hslToHex(h, 20, 70);
   const darkPrimaryText = hslToHex(h, 85, 15);
 
@@ -171,8 +173,8 @@ export function buildDynamicMaterialYouPalette(colors: MaterialYouColors): Theme
       accent: lightCompAccent,
     },
     dark: {
-      bg: '#000000',                              // Solid black in dark mode
-      surface: '#121212',
+      bg: darkBg,
+      surface: darkSurface,
       primary: darkPrimary,
       primaryText: darkPrimaryText,
       secondary: darkCompSecondary,

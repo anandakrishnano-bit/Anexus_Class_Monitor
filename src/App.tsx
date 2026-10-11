@@ -12,6 +12,7 @@ import { LocalAiChatbox } from './components/common/LocalAiChatbox';
 import { SplashScreen } from './components/common/SplashScreen';
 import { WelcomeSetup } from './components/common/WelcomeSetup';
 import { syncLiveAndroidNotification } from './utils/liveNotification';
+import { isAndroid } from './utils/platform';
 import { checkAndTriggerUpcomingAlerts, requestNotificationPermission } from './utils/notifications';
 import { checkAndPerformNightlySync } from './utils/firebaseSync';
 import { flushPendingAttendanceEmails } from './utils/emailDispatcher';
@@ -33,6 +34,7 @@ export const AppContent: React.FC = () => {
   const [slideDirection, setSlideDirection] = useState<'right' | 'left'>('right');
   const prevTabRef = useRef<string>('dashboard');
   const [showSplash, setShowSplash] = useState<boolean>(true);
+  const [appRevealed, setAppRevealed] = useState<boolean>(false);
   const { showToast } = useNotification();
 
   const handleTabChange = (newTab: string) => {
@@ -42,8 +44,8 @@ export const AppContent: React.FC = () => {
     const dir = (nextIndex === -1 || prevIndex === -1)
       ? 'right'
       : nextIndex >= prevIndex
-      ? 'right'
-      : 'left';
+        ? 'right'
+        : 'left';
     setSlideDirection(dir);
     prevTabRef.current = activeTab;
     setActiveTab(newTab);
@@ -59,7 +61,7 @@ export const AppContent: React.FC = () => {
   useEffect(() => {
     seedInitialData();
     // Prompt notification permissions for Android 13+ and Web
-    requestNotificationPermission().catch(() => {});
+    requestNotificationPermission().catch(() => { });
   }, []);
 
   // Continuous background scheduler: checks every 15 seconds for upcoming classes and event reminders
@@ -88,7 +90,7 @@ export const AppContent: React.FC = () => {
     // Automatic Nightly Cloud Sync check
     checkAndPerformNightlySync(ts => {
       showToast('Nightly Backup Done', `Class synced to cloud at ${format(new Date(ts), 'HH:mm')}`, 'info');
-    }).catch(() => {});
+    }).catch(() => { });
 
     let foregroundInterval: any = null;
 
@@ -100,7 +102,7 @@ export const AppContent: React.FC = () => {
           syncLiveAndroidNotification(schedules, periodConfigs, subjects, currentSettings);
           checkAndPerformNightlySync(ts => {
             showToast('Nightly Backup Done', `Class synced to cloud at ${format(new Date(ts), 'HH:mm')}`, 'info');
-          }).catch(() => {});
+          }).catch(() => { });
         }
       }, 15000);
     };
@@ -119,7 +121,9 @@ export const AppContent: React.FC = () => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         checkAndTriggerUpcomingAlerts(todaySchedules, periodConfigs, pendingTasks, showToast);
-        syncLiveAndroidNotification(schedules, periodConfigs, subjects, currentSettings);
+        if (isAndroid()) {
+          syncLiveAndroidNotification(schedules, periodConfigs, subjects, currentSettings);
+        }
         startForegroundInterval();
       } else {
         // Halt JS background polling completely to achieve 0% CPU, 0% GPU and minimal battery/RAM usage
@@ -130,7 +134,7 @@ export const AppContent: React.FC = () => {
     const handleOnline = () => {
       flushPendingAttendanceEmails(currentSettings, count => {
         showToast('Pending Emails Sent', `Internet restored: emailed ${count} queued attendance sheet(s)`, 'success');
-      }).catch(() => {});
+      }).catch(() => { });
     };
 
     window.addEventListener('online', handleOnline);
@@ -174,7 +178,8 @@ export const AppContent: React.FC = () => {
 
   return (
     <SidebarProvider defaultOpen={true}>
-      <div className="h-[100dvh] max-h-[100dvh] bg-[#FAFAFA] dark:bg-black text-neutral-900 dark:text-neutral-100 flex flex-col font-sans relative w-full overflow-hidden">
+      <div className={`h-[100dvh] max-h-[100dvh] bg-[#FAFAFA] dark:bg-black text-neutral-900 dark:text-neutral-100 flex flex-col font-sans relative w-full overflow-hidden transition-opacity duration-500 ease-out ${showSplash ? 'opacity-90' : 'opacity-100'
+        }`}>
         {/* Splash Animation on App Open */}
         {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
 
@@ -200,9 +205,8 @@ export const AppContent: React.FC = () => {
           <Sidebar activeTab={activeTab} setActiveTab={handleTabChange} />
           <main
             key={activeTab}
-            className={`flex-1 min-w-0 h-full overflow-y-auto overscroll-y-contain ${
-              slideDirection === 'right' ? 'page-slide-right' : 'page-slide-left'
-            } pb-[calc(env(safe-area-inset-bottom,0px)+6rem)] md:pb-8`}
+            className={`flex-1 min-w-0 h-full overflow-y-auto overscroll-y-contain ${slideDirection === 'right' ? 'page-slide-right' : 'page-slide-left'
+              } pb-[calc(env(safe-area-inset-bottom,0px)+6rem)] md:pb-8`}
           >
             {renderActivePage()}
           </main>

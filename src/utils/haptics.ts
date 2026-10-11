@@ -50,6 +50,9 @@ if (typeof window !== 'undefined') {
 export function playHapticSound(type: HapticType = 'light') {
   if (typeof window === 'undefined') return;
 
+  // Only play on native Android devices, completely disabled on Desktop
+  if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'android') return;
+
   // Check user preference (enabled by default)
   const soundEnabled = localStorage.getItem('anexus_haptic_sound') !== 'false';
   if (!soundEnabled) return;
@@ -169,6 +172,9 @@ let lastTickTime = 0;
  */
 export async function triggerHaptic(type: HapticType = 'light') {
   if (typeof window === 'undefined') return;
+
+  // Haptic feedback is strictly for native Android devices, completely disabled on Desktop
+  if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'android') return;
 
   // Master haptic preference
   const hapticsEnabled = localStorage.getItem('anexus_haptics_enabled') !== 'false';
