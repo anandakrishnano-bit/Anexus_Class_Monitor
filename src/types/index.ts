@@ -83,7 +83,8 @@ export interface HolidayEntry {
 
 export interface AppSettings {
   id?: number;
-  theme: 'light' | 'dark' | 'system';
+  theme: 'light' | 'dark' | 'system' | 'tinted';
+  tintColor?: string;
   className: string;
   section: string;
   academicYear: string;

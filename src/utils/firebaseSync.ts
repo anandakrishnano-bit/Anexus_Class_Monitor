@@ -67,6 +67,52 @@ export function getActiveFirebaseConfig(userSettings?: Partial<AppSettings>): Fi
 }
 
 /**
+ * Validates if the given Firebase configuration contains valid non-placeholder keys
+ */
+export function isFirebaseConfigValid(config?: FirebaseConfig | null): boolean {
+  if (!config) return false;
+  const key = config.apiKey?.trim() || '';
+  const proj = config.projectId?.trim() || '';
+  return (
+    key.length > 10 &&
+    !key.includes('YOUR_CENTRAL') &&
+    !key.includes('your_firebase') &&
+    proj.length > 2 &&
+    !proj.includes('your_firebase')
+  );
+}
+
+/**
+ * Converts Firebase error codes / exceptions into user-actionable instructions
+ */
+export function parseFirebaseError(err: any, action = 'Operation'): string {
+  const msg = err?.message || String(err || '');
+  const code = err?.code || '';
+
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    return `${action} failed: Your device appears to be offline. Please reconnect to the internet and try again.`;
+  }
+
+  if (code === 'unavailable' || msg.includes('client is offline') || msg.includes('offline')) {
+    return `${action} failed: Cannot reach Firebase cloud servers. Check your internet connection, verify your Firebase Project ID & API Key in Settings, and ensure Cloud Firestore is enabled in your Firebase Console.`;
+  }
+
+  if (code === 'permission-denied' || msg.includes('permission-denied') || msg.includes('Missing or insufficient permissions')) {
+    return `${action} failed: Firebase Permission Denied. Ensure Firestore Security Rules permit read/write operations in your Firebase Console.`;
+  }
+
+  if (code === 'not-found' || msg.includes('not-found')) {
+    return `${action} failed: Firebase project or database not found. Please verify your Project ID.`;
+  }
+
+  if (code === 'invalid-api-key' || msg.includes('API key') || msg.includes('invalid-api-key')) {
+    return `${action} failed: Invalid Firebase Web API Key. Please verify project credentials in Settings.`;
+  }
+
+  return `${action} failed: ${msg}`;
+}
+
+/**
  * Initializes or returns the cached Firebase app instance safely
  */
 export function getFirebaseInstance(config: FirebaseConfig): { app: FirebaseApp; firestore: Firestore } {
@@ -183,23 +229,7 @@ export async function testFirebaseConnection(
       message: `Connected successfully to central Firebase database "${config.projectId}"!`
     };
   } catch (err: any) {
-    const code = err?.code || '';
-    const msg = err?.message || String(err);
-
-    if (code === 'permission-denied') {
-      return {
-        success: false,
-        message: 'Firebase Permission Denied: Ensure Firestore rules permit read/write.'
-      };
-    }
-    if (code === 'invalid-api-key' || msg.includes('API key')) {
-      return { success: false, message: 'Invalid Firebase API Key. Please verify project credentials.' };
-    }
-    if (code === 'not-found') {
-      return { success: false, message: `Firebase project "${config.projectId}" not found.` };
-    }
-
-    return { success: false, message: `Firebase connection failed: ${msg}` };
+    return { success: false, message: parseFirebaseError(err, 'Firebase connection') };
   }
 }
 
@@ -218,6 +248,16 @@ export async function syncToCentralFirebase(
     const settingsList = await db.settings.toArray();
     const currentSettings = settingsList[0];
     const config = customConfig || getActiveFirebaseConfig(currentSettings);
+
+    if (!isFirebaseConfigValid(config)) {
+      return {
+        success: false,
+        message: 'Firebase Cloud is not configured. Please enter your Firebase Project ID and Web API Key in Settings (under Advanced Custom Firebase Config) or configure your .env file.',
+        timestamp: '',
+        userId: '',
+        classCode: ''
+      };
+    }
 
     const userId = customUserId || (await getOrCreateUserSyncId());
     const classCode = customClassCode || currentSettings?.firebaseClassCode || formatClassSyncCode(currentSettings?.className, currentSettings?.section);
@@ -313,7 +353,7 @@ export async function syncToCentralFirebase(
     console.error('Central Firebase sync error:', err);
     return {
       success: false,
-      message: `Sync failed: ${err?.message || String(err)}`,
+      message: parseFirebaseError(err, 'Cloud Sync'),
       timestamp: '',
       userId: '',
       classCode: ''
@@ -342,6 +382,13 @@ export async function restoreFromCentralFirebase(
     const settingsList = await db.settings.toArray();
     const currentSettings = settingsList[0];
     const config = customConfig || getActiveFirebaseConfig(currentSettings);
+
+    if (!isFirebaseConfigValid(config)) {
+      return {
+        success: false,
+        message: 'Firebase Cloud is not configured. Please enter your Firebase Project ID and Web API Key in Settings (under Advanced Custom Firebase Config) or configure your .env file.'
+      };
+    }
 
     const { app, firestore } = getFirebaseInstance(config);
     await ensureFirebaseAuth(app);
@@ -435,7 +482,7 @@ export async function restoreFromCentralFirebase(
     console.error('Restore error:', err);
     return {
       success: false,
-      message: `Restore failed: ${err?.message || String(err)}`
+      message: parseFirebaseError(err, 'Restore')
     };
   }
 }
@@ -452,6 +499,13 @@ export async function deleteCloudData(
     const settingsList = await db.settings.toArray();
     const currentSettings = settingsList[0];
     const config = customConfig || getActiveFirebaseConfig(currentSettings);
+
+    if (!isFirebaseConfigValid(config)) {
+      return {
+        success: false,
+        message: 'Firebase Cloud is not configured. Please enter your Firebase credentials in Settings.'
+      };
+    }
 
     const { app, firestore } = getFirebaseInstance(config);
     await ensureFirebaseAuth(app);
@@ -487,7 +541,7 @@ export async function deleteCloudData(
     console.error('Delete cloud data error:', err);
     return {
       success: false,
-      message: `Failed to delete from cloud: ${err?.message || String(err)}`
+      message: parseFirebaseError(err, 'Delete')
     };
   }
 }

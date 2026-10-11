@@ -2,7 +2,96 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { db } from '../db';
 import { fetchMaterialYouColors, applyMaterialYouToCssVariables } from '../utils/materialYouTheme';
 
-type Theme = 'light' | 'dark' | 'system';
+export type Theme = 'light' | 'dark' | 'system' | 'tinted';
+
+export interface TintPreset {
+  id: string;
+  name: string;
+  baseColor: string;
+  bg: string;
+  surface: string;
+  secondary: string;
+  border: string;
+  mutedText: string;
+}
+
+export const TINT_PRESETS: TintPreset[] = [
+  {
+    id: 'pink',
+    name: 'Blush Rose',
+    baseColor: '#F9CAD2',
+    bg: '#FFF0F3',
+    surface: '#FFFFFF',
+    secondary: '#FDE2E7',
+    border: '#FBCFE8',
+    mutedText: '#835360'
+  },
+  {
+    id: 'yellow',
+    name: 'Sunshine Gold',
+    baseColor: '#F9DA41',
+    bg: '#FFFBEB',
+    surface: '#FFFFFF',
+    secondary: '#FEF3C7',
+    border: '#FDE68A',
+    mutedText: '#856E38'
+  },
+  {
+    id: 'lavender',
+    name: 'Soft Lilac',
+    baseColor: '#DED2F9',
+    bg: '#F5F3FF',
+    surface: '#FFFFFF',
+    secondary: '#EDE9FE',
+    border: '#DDD6FE',
+    mutedText: '#6B5B95'
+  },
+  {
+    id: 'mint',
+    name: 'Fresh Mint',
+    baseColor: '#A7F3D0',
+    bg: '#F0FDF4',
+    surface: '#FFFFFF',
+    secondary: '#DCFCE7',
+    border: '#BBF7D0',
+    mutedText: '#477A65'
+  },
+  {
+    id: 'sky',
+    name: 'Sky Azure',
+    baseColor: '#BAE6FD',
+    bg: '#F0F9FF',
+    surface: '#FFFFFF',
+    secondary: '#E0F2FE',
+    border: '#BAE6FD',
+    mutedText: '#446E87'
+  },
+  {
+    id: 'coral',
+    name: 'Warm Coral',
+    baseColor: '#FED7AA',
+    bg: '#FFF7ED',
+    surface: '#FFFFFF',
+    secondary: '#FFEDD5',
+    border: '#FED7AA',
+    mutedText: '#8C5E47'
+  }
+];
+
+export function resolveTintPreset(color: string): TintPreset {
+  const match = TINT_PRESETS.find(p => p.baseColor.toLowerCase() === color.toLowerCase() || p.id === color);
+  if (match) return match;
+  return {
+    id: 'custom',
+    name: 'Custom Tint',
+    baseColor: color,
+    bg: `${color}1A`,
+    surface: '#FFFFFF',
+    secondary: `${color}26`,
+    border: `${color}4D`,
+    mutedText: '#666666'
+  };
+}
 
 export interface ThemeToggleOptions {
   clientX?: number;
@@ -15,12 +104,16 @@ interface ThemeContextType {
   toggleTheme: (eventOrOptions?: React.MouseEvent | ThemeToggleOptions) => void;
   isDark: boolean;
   tertiaryColor?: string;
+  tintColor: string;
+  setTintColor: (color: string) => void;
+  tintPreset: TintPreset;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setThemeState] = useState<Theme>('system');
+  const [tintColor, setTintColorState] = useState<string>('#F9CAD2');
   const [tertiaryColor, setTertiaryColor] = useState<string>('#7C3AED');
   const [isDark, setIsDark] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
@@ -30,12 +123,41 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return false;
   });
 
+  const applyTintToDOM = useCallback((preset: TintPreset, enabled: boolean) => {
+    if (typeof document === 'undefined') return;
+    const root = document.documentElement;
+    if (enabled) {
+      root.classList.add('tinted-mode');
+      root.style.setProperty('--tint-bg', preset.bg);
+      root.style.setProperty('--tint-surface', preset.surface);
+      root.style.setProperty('--tint-secondary', preset.secondary);
+      root.style.setProperty('--tint-border', preset.border);
+      root.style.setProperty('--tint-muted', preset.mutedText);
+      root.style.setProperty('--tint-base', preset.baseColor);
+      root.style.setProperty('--accent-tertiary', preset.baseColor);
+      root.style.setProperty('--accent-tertiary-subtle', `${preset.baseColor}22`);
+      root.style.setProperty('--accent-tertiary-glow', `${preset.baseColor}33`);
+    } else {
+      root.classList.remove('tinted-mode');
+    }
+  }, []);
+
   useEffect(() => {
     db.settings.toArray().then(settings => {
-      if (settings.length > 0 && settings[0].theme) {
-        setThemeState(settings[0].theme);
+      if (settings.length > 0) {
+        if (settings[0].theme) {
+          setThemeState(settings[0].theme as Theme);
+        }
+        if (settings[0].tintColor) {
+          setTintColorState(settings[0].tintColor);
+        }
       }
     });
+
+    try {
+      const storedTint = localStorage.getItem('__user_tint_color');
+      if (storedTint) setTintColorState(storedTint);
+    } catch {}
 
     // Load Material You system tertiary color from Monet engine / system
     fetchMaterialYouColors().then(colors => {
@@ -50,7 +172,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const computeIsDark = useCallback((t: Theme): boolean => {
     if (t === 'dark') return true;
-    if (t === 'light') return false;
+    if (t === 'light' || t === 'tinted') return false;
     return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
   }, []);
 
@@ -63,6 +185,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } else {
       root.classList.remove('dark');
     }
+
+    const preset = resolveTintPreset(tintColor);
+    applyTintToDOM(preset, theme === 'tinted');
 
     // Refresh dynamic tertiary color tokens when theme changes
     fetchMaterialYouColors().then(colors => {
@@ -84,15 +209,19 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
-  }, [theme, computeIsDark]);
+  }, [theme, tintColor, computeIsDark, applyTintToDOM]);
 
-  const saveThemeToDb = async (newTheme: Theme) => {
+  const saveThemeToDb = async (newTheme: Theme, newTintColor?: string) => {
     const settings = await db.settings.toArray();
+    const updatePayload: any = { theme: newTheme };
+    if (newTintColor) updatePayload.tintColor = newTintColor;
+
     if (settings.length > 0) {
-      await db.settings.update(settings[0].id!, { theme: newTheme });
+      await db.settings.update(settings[0].id!, updatePayload);
     } else {
       await db.settings.add({
         theme: newTheme,
+        tintColor: newTintColor || tintColor,
         className: 'My Class',
         section: 'Section A',
         academicYear: '2026 - 2027',
@@ -113,17 +242,27 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     await saveThemeToDb(newTheme);
   };
 
+  const setTintColor = async (color: string) => {
+    setTintColorState(color);
+    try {
+      localStorage.setItem('__user_tint_color', color);
+    } catch {}
+    await saveThemeToDb(theme, color);
+    const preset = resolveTintPreset(color);
+    if (theme === 'tinted') {
+      applyTintToDOM(preset, true);
+    }
+  };
+
   /**
    * Circular expand (when switching to dark) & Circular contract (when switching to light)
    * matches Dribbble: https://dribbble.com/shots/23756585-Light-Dark-mode-button-animation
    */
   const toggleTheme = (eventOrOptions?: React.MouseEvent | ThemeToggleOptions) => {
-    // Current visual darkness
     const currentIsDark = document.documentElement.classList.contains('dark');
     const willBeDark = !currentIsDark;
     const nextTheme: Theme = willBeDark ? 'dark' : 'light';
 
-    // Get click coordinates (or center of screen)
     let x = window.innerWidth / 2;
     let y = window.innerHeight / 2;
 
@@ -138,7 +277,6 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     }
 
-    // Radius needed to reach furthest corner of screen from (x, y)
     const endRadius = Math.hypot(
       Math.max(x, window.innerWidth - x),
       Math.max(y, window.innerHeight - y)
@@ -155,12 +293,20 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       saveThemeToDb(nextTheme);
     };
 
-    // Circular reveal animation: expands outward to dark, contracts inward to light
     runCircularThemeTransition(x, y, endRadius, willBeDark, updateDOM);
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme, isDark }}>
+    <ThemeContext.Provider value={{
+      theme,
+      setTheme,
+      toggleTheme,
+      isDark,
+      tertiaryColor,
+      tintColor,
+      setTintColor,
+      tintPreset: resolveTintPreset(tintColor)
+    }}>
       {children}
     </ThemeContext.Provider>
   );

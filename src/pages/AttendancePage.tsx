@@ -946,45 +946,59 @@ export const AttendancePage: React.FC = () => {
           const isAbsent = status === 'absent';
           const remark = remarksMap[student.id!];
 
-          let cardBgClass = 'bg-neutral-900 dark:bg-[#171717] text-white border-neutral-800 dark:border-neutral-700';
+          let cardBgClass = 'bg-white dark:bg-[#171717] text-neutral-900 dark:text-white border-neutral-200/90 dark:border-neutral-800 shadow-sm';
+          let indexBadgeClass = 'bg-neutral-100 dark:bg-white/10 border-neutral-200/80 dark:border-white/10 text-neutral-800 dark:text-white';
+          let nameTextClass = 'text-neutral-900 dark:text-white';
+          let regNoClass = 'text-neutral-500 dark:text-neutral-400';
+          let pillContainerClass = 'bg-neutral-100 dark:bg-white/10';
+          let moreBtnClass = 'bg-neutral-100 hover:bg-neutral-200 dark:bg-white/10 dark:hover:bg-white/20 text-neutral-600 dark:text-white';
+
           if (isAbsent) {
-            cardBgClass = 'bg-[#b91c1c] dark:bg-[#991b1b] text-white border-red-500/50 shadow-red-900/30';
-          } else if (status === 'od') {
-            cardBgClass = 'bg-neutral-800 dark:bg-[#262626] text-white border-neutral-700';
-          } else if (status === 'medical') {
-            cardBgClass = 'bg-neutral-800 dark:bg-[#262626] text-white border-neutral-700';
+            cardBgClass = 'bg-red-50 dark:bg-[#7f1d1d]/40 text-red-950 dark:text-red-100 border-red-200 dark:border-red-900/60 shadow-sm';
+            indexBadgeClass = 'bg-red-200/60 dark:bg-red-900/60 border-red-300 dark:border-red-800 text-red-900 dark:text-red-200';
+            nameTextClass = 'text-red-950 dark:text-red-100';
+            regNoClass = 'text-red-700 dark:text-red-300';
+            pillContainerClass = 'bg-red-200/60 dark:bg-red-950/80';
+            moreBtnClass = 'bg-red-200/60 hover:bg-red-200 dark:bg-red-900/40 text-red-900 dark:text-red-200';
+          } else if (status === 'od' || status === 'medical') {
+            cardBgClass = 'bg-blue-50 dark:bg-[#1e3a8a]/40 text-blue-950 dark:text-blue-100 border-blue-200 dark:border-blue-900/60 shadow-sm';
+            indexBadgeClass = 'bg-blue-200/60 dark:bg-blue-900/60 border-blue-300 dark:border-blue-800 text-blue-900 dark:text-blue-200';
+            nameTextClass = 'text-blue-950 dark:text-blue-100';
+            regNoClass = 'text-blue-700 dark:text-blue-300';
+            pillContainerClass = 'bg-blue-200/60 dark:bg-blue-950/80';
+            moreBtnClass = 'bg-blue-200/60 hover:bg-blue-200 dark:bg-blue-900/40 text-blue-900 dark:text-blue-200';
           }
 
           return (
             <div
               key={student.id}
               onClick={() => handleCardClick(student.id!)}
-              className={`group p-4 sm:px-6 sm:py-4 rounded-3xl ${cardBgClass} border shadow-md hover:shadow-xl cursor-pointer transition-all duration-200 flex items-center justify-between gap-3.5 min-h-[84px] w-full active:scale-[0.99] animate-result-fade`}
+              className={`group p-4 sm:px-6 sm:py-4 rounded-3xl ${cardBgClass} border hover:shadow-md cursor-pointer transition-all duration-200 flex items-center justify-between gap-3.5 min-h-[84px] w-full active:scale-[0.99] animate-result-fade`}
             >
               <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                <div className="w-10 h-10 rounded-2xl bg-white/15 border border-white/10 text-white flex items-center justify-center font-black text-xs sm:text-sm shrink-0 shadow-inner">
+                <div className={`w-10 h-10 rounded-2xl border flex items-center justify-center font-black text-xs sm:text-sm shrink-0 shadow-inner ${indexBadgeClass}`}>
                   {idx + 1}
                 </div>
 
                 <div className="min-w-0 flex-1 pr-2">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h4 className="text-sm sm:text-base font-extrabold uppercase tracking-wide break-words leading-snug text-white">
+                    <h4 className={`text-sm sm:text-base font-extrabold uppercase tracking-wide break-words leading-snug ${nameTextClass}`}>
                       {student.name}
                     </h4>
                     {remark && (
-                      <span className="px-2 py-0.5 rounded-full bg-white/20 text-white font-extrabold text-[9px] uppercase shrink-0">
+                      <span className="px-2 py-0.5 rounded-full bg-neutral-200/80 dark:bg-white/20 text-neutral-800 dark:text-white font-extrabold text-[9px] uppercase shrink-0">
                         Remark
                       </span>
                     )}
                   </div>
-                  <span className="text-xs font-mono font-semibold text-white/80 block mt-0.5">
+                  <span className={`text-xs font-mono font-semibold block mt-0.5 ${regNoClass}`}>
                     {student.registerNo}
                   </span>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
-                <div className="p-1 rounded-2xl bg-black/20 backdrop-blur-sm flex items-center gap-1">
+                <div className={`p-1 rounded-2xl flex items-center gap-1 ${pillContainerClass}`}>
                   <button
                     type="button"
                     onClick={e => {
@@ -994,8 +1008,8 @@ export const AttendancePage: React.FC = () => {
                     }}
                     className={`w-9 h-8 rounded-xl font-black text-xs transition-all ${
                       isPresent
-                        ? 'bg-white text-neutral-900 shadow-md font-extrabold'
-                        : 'text-white/60 hover:text-white'
+                        ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 shadow-sm font-extrabold'
+                        : 'text-neutral-400 dark:text-white/60 hover:text-neutral-900 dark:hover:text-white'
                     }`}
                   >
                     P
@@ -1009,8 +1023,8 @@ export const AttendancePage: React.FC = () => {
                     }}
                     className={`w-9 h-8 rounded-xl font-black text-xs transition-all ${
                       isAbsent
-                        ? 'bg-white text-[#b91c1c] shadow-md font-extrabold'
-                        : 'text-white/60 hover:text-white'
+                        ? 'bg-[#b91c1c] text-white shadow-md font-extrabold'
+                        : 'text-neutral-400 dark:text-white/60 hover:text-[#b91c1c]'
                     }`}
                   >
                     A
@@ -1021,7 +1035,7 @@ export const AttendancePage: React.FC = () => {
                 <button
                   type="button"
                   onClick={e => handleOpenStudentModal(e, student)}
-                  className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors shadow-sm active:scale-90"
+                  className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors shadow-sm active:scale-90 ${moreBtnClass}`}
                   title="Student Options & Remarks"
                 >
                   <MoreVertical className="w-4 h-4" />

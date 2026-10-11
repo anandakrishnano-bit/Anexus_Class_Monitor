@@ -132,5 +132,19 @@ describe('Single Central Firebase Database Architecture', () => {
     expect(await verifyAdminAccessCode('wrong-password')).toBe(false);
     expect(await verifyAdminAccessCode('')).toBe(false);
   });
+
+  it('should validate Firebase config keys and reject invalid/placeholders', async () => {
+    const { isFirebaseConfigValid } = await import('../utils/firebaseSync');
+    expect(isFirebaseConfigValid({ apiKey: '', projectId: '' })).toBe(false);
+    expect(isFirebaseConfigValid({ apiKey: 'YOUR_CENTRAL_API_KEY', projectId: 'valid-proj' })).toBe(false);
+    expect(isFirebaseConfigValid({ apiKey: 'AIzaSyDemoValidKey123', projectId: 'my-class-proj' })).toBe(true);
+  });
+
+  it('should parse client offline errors with helpful actionable instructions', async () => {
+    const { parseFirebaseError } = await import('../utils/firebaseSync');
+    const offlineMsg = parseFirebaseError(new Error('Failed to get document because the client is offline.'), 'Restore');
+    expect(offlineMsg).toContain('offline');
+    expect(offlineMsg).toContain('internet');
+  });
 });
 

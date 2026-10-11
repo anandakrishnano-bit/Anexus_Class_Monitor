@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, wipeSchedulesAndFaculty, wipeAllClassData, restoreDefaultRegistrationTimetable } from '../db';
 import { Student, Faculty, Subject, HolidayEntry } from '../types';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme, TINT_PRESETS } from '../context/ThemeContext';
 import { useNotification } from '../context/NotificationContext';
 import { triggerHaptic } from '../utils/haptics';
 import { DEFAULT_SUMMARY_TEMPLATE, formatAttendanceSummary, SAMPLE_STUDENTS } from '../utils/summaryFormatter';
@@ -102,10 +102,11 @@ import {
   fetchAllCloudUsers,
   fetchAllCloudClasses,
   adminDeleteCloudDoc,
-  FirebaseConfig
+  FirebaseConfig,
+  isFirebaseConfigValid
 } from '../utils/firebaseSync';
 import { CENTRAL_FIREBASE_CONFIG, isCentralFirebaseConfigured, verifyAdminAccessCode, createAdminSessionToken } from '../config/firebaseConfig';
-import { Database, Share2, Shield, Mail, Send } from 'lucide-react';
+import { Database, Share2, Shield, Mail, Send, Palette } from 'lucide-react';
 import { enqueueAttendanceEmail, flushPendingAttendanceEmails, shareAttendanceReport } from '../utils/emailDispatcher';
 import { Capacitor } from '@capacitor/core';
 
@@ -115,7 +116,7 @@ interface SettingsPageProps {
 }
 
 export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenWalkthrough, onNavigateToProfile }) => {
-  const { theme, setTheme, toggleTheme, isDark } = useTheme();
+  const { theme, setTheme, toggleTheme, isDark, tintColor, setTintColor } = useTheme();
   const { showToast } = useNotification();
 
   const settingsList = useLiveQuery(() => db.settings.toArray());
@@ -1322,10 +1323,11 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenWalkthrough, o
           </button>
         </div>
 
-        <div className="grid grid-cols-3 gap-2.5 pt-1">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
           {[
             { id: 'light' as const, label: 'Light', icon: Sun, desc: 'Clean paper aesthetic' },
             { id: 'dark' as const, label: 'Dark', icon: Moon, desc: 'OLED pure dark' },
+            { id: 'tinted' as const, label: 'Tinted', icon: Palette, desc: 'Soft colour palette' },
             { id: 'system' as const, label: 'System', icon: Monitor, desc: 'Follow OS settings' },
           ].map((mode) => {
             const Icon = mode.icon;
@@ -1338,6 +1340,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenWalkthrough, o
                   triggerHaptic('medium');
                   if (mode.id === 'system') {
                     setTheme('system');
+                  } else if (mode.id === 'tinted') {
+                    setTheme('tinted');
                   } else {
                     const shouldChange = (mode.id === 'dark') !== isDark;
                     if (shouldChange) {
@@ -1366,6 +1370,55 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenWalkthrough, o
               </button>
             );
           })}
+        </div>
+
+        {/* Selected Soft Tint Palette */}
+        <div className="pt-3 border-t border-neutral-100 dark:border-neutral-800 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-neutral-800 dark:text-neutral-200 flex items-center gap-1.5">
+              <Palette className="w-3.5 h-3.5 text-pink-500" />
+              Selected Tint Colour
+            </span>
+            <span className="text-[10px] text-neutral-400 font-medium">
+              Replaces pure whites & greys
+            </span>
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+            {TINT_PRESETS.map(preset => {
+              const isCurrent = tintColor.toLowerCase() === preset.baseColor.toLowerCase();
+              const isSelectedInTinted = isCurrent && theme === 'tinted';
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic('light');
+                    setTintColor(preset.baseColor);
+                    if (theme !== 'tinted') setTheme('tinted');
+                  }}
+                  className={`p-2.5 rounded-2xl border text-center transition-all flex flex-col items-center gap-1.5 active:scale-95 ${
+                    isSelectedInTinted
+                      ? 'border-neutral-900 dark:border-white shadow-md ring-2 ring-neutral-900/20'
+                      : 'border-neutral-200 dark:border-neutral-700 hover:border-neutral-400'
+                  }`}
+                  style={{ backgroundColor: preset.bg }}
+                >
+                  <span
+                    className="w-5 h-5 rounded-full border border-black/10 shadow-sm shrink-0 flex items-center justify-center"
+                    style={{ backgroundColor: preset.baseColor }}
+                  >
+                    {isSelectedInTinted && <Check className="w-3 h-3 text-neutral-900" />}
+                  </span>
+                  <span className="text-[10px] font-bold text-neutral-800 line-clamp-1">
+                    {preset.name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[11px] text-neutral-400 leading-tight">
+            Tinted mode replaces bright white surfaces with your chosen soft pastel and greys with matching muted shades.
+          </p>
         </div>
       </div>
 
@@ -1960,24 +2013,33 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenWalkthrough, o
         </div>
 
         {/* Status Bar: Nightly Sync & Connection Indicator */}
-        <div className="p-3 rounded-2xl bg-neutral-50 dark:bg-[#262626] border border-neutral-200 dark:border-neutral-700/60 flex flex-wrap items-center justify-between gap-2.5 text-xs">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-            <span className="font-bold text-neutral-800 dark:text-neutral-200">Database Active</span>
-            <span className="text-neutral-300 dark:text-neutral-600">•</span>
-            <span className="text-neutral-500 dark:text-neutral-400 text-[11px]">
-              Auto-syncs nightly (21:00 – 05:00)
-            </span>
-          </div>
-          {lastFirebaseSyncAt ? (
-            <span className="text-[11px] font-mono text-neutral-500 dark:text-neutral-400 flex items-center gap-1.5 shrink-0">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-              Synced {format(parseISO(lastFirebaseSyncAt), 'dd MMM, HH:mm')}
-            </span>
-          ) : (
-            <span className="text-[11px] text-neutral-400 shrink-0">Ready to sync</span>
-          )}
-        </div>
+        {(() => {
+          const isCloudConfigured = isCentralFirebaseConfigured() || isFirebaseConfigValid({ apiKey: firebaseApiKey, projectId: firebaseProjectId });
+          return (
+            <div className="p-3 rounded-2xl bg-neutral-50 dark:bg-[#262626] border border-neutral-200 dark:border-neutral-700/60 flex flex-wrap items-center justify-between gap-2.5 text-xs">
+              <div className="flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full ${isCloudConfigured ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'} shrink-0`} />
+                <span className="font-bold text-neutral-800 dark:text-neutral-200">
+                  {isCloudConfigured ? 'Database Ready' : 'Setup Required'}
+                </span>
+                <span className="text-neutral-300 dark:text-neutral-600">•</span>
+                <span className="text-neutral-500 dark:text-neutral-400 text-[11px]">
+                  {isCloudConfigured ? 'Auto-syncs nightly (21:00 – 05:00)' : 'Configure Firebase below to enable cloud backup & restore'}
+                </span>
+              </div>
+              {lastFirebaseSyncAt ? (
+                <span className="text-[11px] font-mono text-neutral-500 dark:text-neutral-400 flex items-center gap-1.5 shrink-0">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                  Synced {format(parseISO(lastFirebaseSyncAt), 'dd MMM, HH:mm')}
+                </span>
+              ) : (
+                <span className="text-[11px] text-neutral-400 shrink-0">
+                  {isCloudConfigured ? 'Ready to sync' : 'Not configured'}
+                </span>
+              )}
+            </div>
+          );
+        })()}
 
         {firebaseSyncEnabled && (
           <div className="space-y-4 pt-1 animate-fade-in">

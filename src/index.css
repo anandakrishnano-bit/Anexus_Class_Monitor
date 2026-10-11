@@ -35,6 +35,47 @@
     --accent-tertiary-glow: rgba(167, 139, 250, 0.3);
   }
 
+  /* Tinted Color Mode: Soft palette replaces plain whites with selected tint and greys with muted tone */
+  html.tinted-mode {
+    --bg-app: var(--tint-bg, #FFF0F3);
+    --card-surface: var(--tint-surface, #FFFFFF);
+    --card-secondary: var(--tint-secondary, #FDE2E7);
+    --card-tertiary: var(--tint-secondary, #FDE2E7);
+    --border-subtle: var(--tint-border, #FBCFE8);
+  }
+
+  html.tinted-mode,
+  html.tinted-mode body {
+    background-color: var(--tint-bg, #FFF0F3) !important;
+  }
+
+  html.tinted-mode .bg-\[\#FAFAFA\] {
+    background-color: var(--tint-bg, #FFF0F3) !important;
+  }
+
+  html.tinted-mode .bg-white {
+    background-color: var(--tint-surface, #FFFFFF) !important;
+  }
+
+  html.tinted-mode .bg-neutral-50 {
+    background-color: var(--tint-secondary, #FDE2E7) !important;
+  }
+
+  html.tinted-mode .bg-neutral-100 {
+    background-color: var(--tint-secondary, #FDE2E7) !important;
+  }
+
+  html.tinted-mode .border-neutral-100,
+  html.tinted-mode .border-neutral-200,
+  html.tinted-mode .border-neutral-200\/80 {
+    border-color: var(--tint-border, #FBCFE8) !important;
+  }
+
+  html.tinted-mode .text-neutral-500,
+  html.tinted-mode .text-neutral-400 {
+    color: var(--tint-muted, #835360) !important;
+  }
+
   body {
     @apply antialiased font-sans select-none text-neutral-900 dark:text-neutral-100 bg-[#FAFAFA] dark:bg-[#0A0A0A];
     -webkit-tap-highlight-color: transparent;
