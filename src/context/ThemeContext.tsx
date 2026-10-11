@@ -2,96 +2,319 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { db } from '../db';
 import { fetchMaterialYouColors, applyMaterialYouToCssVariables } from '../utils/materialYouTheme';
 
-export type Theme = 'light' | 'dark' | 'system' | 'tinted';
+export type Theme = 'light' | 'dark' | 'system';
 
-export interface TintPreset {
-  id: string;
-  name: string;
-  baseColor: string;
+export interface PaletteTokens {
   bg: string;
   surface: string;
+  primary: string;
+  primaryText: string;
   secondary: string;
+  secondaryBg: string;
   border: string;
-  mutedText: string;
+  muted: string;
+  accent: string;
 }
 
-export const TINT_PRESETS: TintPreset[] = [
+export interface ThemePalette {
+  id: string;
+  name: string;
+  previewColor: string;
+  baseColor: string; // alias for compatibility
+  bg: string;        // alias for compatibility
+  surface: string;   // alias for compatibility
+  secondary: string; // alias for compatibility
+  border: string;    // alias for compatibility
+  mutedText: string; // alias for compatibility
+  light: PaletteTokens;
+  dark: PaletteTokens;
+}
+
+export const THEME_PALETTES: ThemePalette[] = [
   {
     id: 'pink',
     name: 'Blush Rose',
+    previewColor: '#F9CAD2',
     baseColor: '#F9CAD2',
     bg: '#FFF0F3',
     surface: '#FFFFFF',
     secondary: '#FDE2E7',
     border: '#FBCFE8',
-    mutedText: '#835360'
+    mutedText: '#835360',
+    light: {
+      bg: '#FFF0F3',
+      surface: '#FFFFFF',
+      primary: '#9F1239', // deep rich rose replacing black
+      primaryText: '#FFFFFF',
+      secondary: '#BE185D',
+      secondaryBg: '#FDE2E7',
+      border: '#FBCFE8',
+      muted: '#835360',
+      accent: '#E11D48',
+    },
+    dark: {
+      bg: '#0F0A0D',
+      surface: '#1A1216',
+      primary: '#F9CAD2', // luminous blush pink replacing white
+      primaryText: '#881337',
+      secondary: '#FDA4AF',
+      secondaryBg: '#2B151F',
+      border: '#421D2C',
+      muted: '#D4A5B3',
+      accent: '#FB7185',
+    }
   },
   {
     id: 'yellow',
     name: 'Sunshine Gold',
+    previewColor: '#F9DA41',
     baseColor: '#F9DA41',
     bg: '#FFFBEB',
     surface: '#FFFFFF',
     secondary: '#FEF3C7',
     border: '#FDE68A',
-    mutedText: '#856E38'
+    mutedText: '#856E38',
+    light: {
+      bg: '#FFFBEB',
+      surface: '#FFFFFF',
+      primary: '#78350F', // deep warm amber replacing black
+      primaryText: '#FFFFFF',
+      secondary: '#92400E',
+      secondaryBg: '#FEF3C7',
+      border: '#FDE68A',
+      muted: '#856E38',
+      accent: '#D97706',
+    },
+    dark: {
+      bg: '#0E0D08',
+      surface: '#1A1810',
+      primary: '#F9DA41', // luminous sunshine gold replacing white
+      primaryText: '#78350F',
+      secondary: '#FDE047',
+      secondaryBg: '#2D2611',
+      border: '#443916',
+      muted: '#D6C782',
+      accent: '#FACC15',
+    }
   },
   {
     id: 'lavender',
     name: 'Soft Lilac',
+    previewColor: '#DED2F9',
     baseColor: '#DED2F9',
     bg: '#F5F3FF',
     surface: '#FFFFFF',
     secondary: '#EDE9FE',
     border: '#DDD6FE',
-    mutedText: '#6B5B95'
+    mutedText: '#6B5B95',
+    light: {
+      bg: '#F5F3FF',
+      surface: '#FFFFFF',
+      primary: '#4C1D95', // deep violet replacing black
+      primaryText: '#FFFFFF',
+      secondary: '#6D28D9',
+      secondaryBg: '#EDE9FE',
+      border: '#DDD6FE',
+      muted: '#6B5B95',
+      accent: '#7C3AED',
+    },
+    dark: {
+      bg: '#0D0A14',
+      surface: '#171324',
+      primary: '#DED2F9', // luminous lilac replacing white
+      primaryText: '#4C1D95',
+      secondary: '#C4B5FD',
+      secondaryBg: '#271E40',
+      border: '#3B2D62',
+      muted: '#B8A9D9',
+      accent: '#A78BFA',
+    }
   },
   {
     id: 'mint',
     name: 'Fresh Mint',
+    previewColor: '#A7F3D0',
     baseColor: '#A7F3D0',
     bg: '#F0FDF4',
     surface: '#FFFFFF',
     secondary: '#DCFCE7',
     border: '#BBF7D0',
-    mutedText: '#477A65'
+    mutedText: '#477A65',
+    light: {
+      bg: '#F0FDF4',
+      surface: '#FFFFFF',
+      primary: '#064E3B', // deep pine replacing black
+      primaryText: '#FFFFFF',
+      secondary: '#047857',
+      secondaryBg: '#DCFCE7',
+      border: '#BBF7D0',
+      muted: '#477A65',
+      accent: '#059669',
+    },
+    dark: {
+      bg: '#080F0C',
+      surface: '#111C16',
+      primary: '#A7F3D0', // luminous mint replacing white
+      primaryText: '#064E3B',
+      secondary: '#6EE7B7',
+      secondaryBg: '#182E22',
+      border: '#244735',
+      muted: '#88C4A9',
+      accent: '#34D399',
+    }
   },
   {
     id: 'sky',
     name: 'Sky Azure',
+    previewColor: '#BAE6FD',
     baseColor: '#BAE6FD',
     bg: '#F0F9FF',
     surface: '#FFFFFF',
     secondary: '#E0F2FE',
     border: '#BAE6FD',
-    mutedText: '#446E87'
+    mutedText: '#446E87',
+    light: {
+      bg: '#F0F9FF',
+      surface: '#FFFFFF',
+      primary: '#0C4A6E', // deep oceanic navy replacing black
+      primaryText: '#FFFFFF',
+      secondary: '#0284C7',
+      secondaryBg: '#E0F2FE',
+      border: '#BAE6FD',
+      muted: '#446E87',
+      accent: '#0284C7',
+    },
+    dark: {
+      bg: '#080D12',
+      surface: '#101822',
+      primary: '#BAE6FD', // luminous sky blue replacing white
+      primaryText: '#0C4A6E',
+      secondary: '#7DD3FC',
+      secondaryBg: '#172A3C',
+      border: '#22405C',
+      muted: '#89B9D8',
+      accent: '#38BDF8',
+    }
   },
   {
     id: 'coral',
     name: 'Warm Coral',
+    previewColor: '#FED7AA',
     baseColor: '#FED7AA',
     bg: '#FFF7ED',
     surface: '#FFFFFF',
     secondary: '#FFEDD5',
     border: '#FED7AA',
-    mutedText: '#8C5E47'
+    mutedText: '#8C5E47',
+    light: {
+      bg: '#FFF7ED',
+      surface: '#FFFFFF',
+      primary: '#7C2D12', // deep burnt terracotta replacing black
+      primaryText: '#FFFFFF',
+      secondary: '#C2410C',
+      secondaryBg: '#FFEDD5',
+      border: '#FED7AA',
+      muted: '#8C5E47',
+      accent: '#EA580C',
+    },
+    dark: {
+      bg: '#120A07',
+      surface: '#1F130E',
+      primary: '#FED7AA', // luminous warm peach replacing white
+      primaryText: '#7C2D12',
+      secondary: '#FDBA74',
+      secondaryBg: '#331D14',
+      border: '#4D2C1E',
+      muted: '#D4A286',
+      accent: '#FB923C',
+    }
+  },
+  {
+    id: 'mono',
+    name: 'Classic Mono',
+    previewColor: '#0A0A0A',
+    baseColor: '#0A0A0A',
+    bg: '#FAFAFA',
+    surface: '#FFFFFF',
+    secondary: '#F4F4F5',
+    border: '#E5E5E5',
+    mutedText: '#737373',
+    light: {
+      bg: '#FAFAFA',
+      surface: '#FFFFFF',
+      primary: '#0A0A0A',
+      primaryText: '#FFFFFF',
+      secondary: '#525252',
+      secondaryBg: '#F4F4F5',
+      border: '#E5E5E5',
+      muted: '#737373',
+      accent: '#7C3AED',
+    },
+    dark: {
+      bg: '#0A0A0A',
+      surface: '#171717',
+      primary: '#EDEDED',
+      primaryText: '#0A0A0A',
+      secondary: '#A1A1A1',
+      secondaryBg: '#262626',
+      border: '#2E2E2E',
+      muted: '#737373',
+      accent: '#A78BFA',
+    }
   }
 ];
 
-export function resolveTintPreset(color: string): TintPreset {
-  const match = TINT_PRESETS.find(p => p.baseColor.toLowerCase() === color.toLowerCase() || p.id === color);
+// Alias for backwards compatibility
+export const TINT_PRESETS = THEME_PALETTES;
+
+export function resolveThemePalette(colorOrId: string): ThemePalette {
+  if (!colorOrId) return THEME_PALETTES[0];
+  const query = colorOrId.toLowerCase();
+  const match = THEME_PALETTES.find(
+    p => p.id.toLowerCase() === query ||
+         p.previewColor.toLowerCase() === query ||
+         p.baseColor.toLowerCase() === query
+  );
   if (match) return match;
+
+  // Custom fallback
   return {
     id: 'custom',
-    name: 'Custom Tint',
-    baseColor: color,
-    bg: `${color}1A`,
+    name: 'Custom Palette',
+    previewColor: colorOrId,
+    baseColor: colorOrId,
+    bg: `${colorOrId}1A`,
     surface: '#FFFFFF',
-    secondary: `${color}26`,
-    border: `${color}4D`,
-    mutedText: '#666666'
+    secondary: `${colorOrId}26`,
+    border: `${colorOrId}4D`,
+    mutedText: '#666666',
+    light: {
+      bg: `${colorOrId}14`,
+      surface: '#FFFFFF',
+      primary: colorOrId,
+      primaryText: '#FFFFFF',
+      secondary: `${colorOrId}99`,
+      secondaryBg: `${colorOrId}1F`,
+      border: `${colorOrId}33`,
+      muted: '#666666',
+      accent: colorOrId,
+    },
+    dark: {
+      bg: '#0A0A0A',
+      surface: '#171717',
+      primary: colorOrId,
+      primaryText: '#0A0A0A',
+      secondary: `${colorOrId}CC`,
+      secondaryBg: '#262626',
+      border: '#333333',
+      muted: '#A1A1A1',
+      accent: colorOrId,
+    }
   };
 }
+
+// Alias for backward compatibility
+export const resolveTintPreset = resolveThemePalette;
 
 export interface ThemeToggleOptions {
   clientX?: number;
@@ -106,7 +329,8 @@ interface ThemeContextType {
   tertiaryColor?: string;
   tintColor: string;
   setTintColor: (color: string) => void;
-  tintPreset: TintPreset;
+  palette: ThemePalette;
+  tintPreset: ThemePalette; // alias
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -123,30 +347,43 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return false;
   });
 
-  const applyTintToDOM = useCallback((preset: TintPreset, enabled: boolean) => {
+  const activePalette = resolveThemePalette(tintColor);
+
+  const applyPaletteToDOM = useCallback((palette: ThemePalette, darkActive: boolean) => {
     if (typeof document === 'undefined') return;
     const root = document.documentElement;
-    if (enabled) {
-      root.classList.add('tinted-mode');
-      root.style.setProperty('--tint-bg', preset.bg);
-      root.style.setProperty('--tint-surface', preset.surface);
-      root.style.setProperty('--tint-secondary', preset.secondary);
-      root.style.setProperty('--tint-border', preset.border);
-      root.style.setProperty('--tint-muted', preset.mutedText);
-      root.style.setProperty('--tint-base', preset.baseColor);
-      root.style.setProperty('--accent-tertiary', preset.baseColor);
-      root.style.setProperty('--accent-tertiary-subtle', `${preset.baseColor}22`);
-      root.style.setProperty('--accent-tertiary-glow', `${preset.baseColor}33`);
-    } else {
-      root.classList.remove('tinted-mode');
-    }
+    const tokens = darkActive ? palette.dark : palette.light;
+
+    root.style.setProperty('--theme-bg', tokens.bg);
+    root.style.setProperty('--theme-surface', tokens.surface);
+    root.style.setProperty('--theme-primary', tokens.primary);
+    root.style.setProperty('--theme-primary-text', tokens.primaryText);
+    root.style.setProperty('--theme-secondary', tokens.secondary);
+    root.style.setProperty('--theme-secondary-bg', tokens.secondaryBg);
+    root.style.setProperty('--theme-border', tokens.border);
+    root.style.setProperty('--theme-muted', tokens.muted);
+    root.style.setProperty('--theme-accent', tokens.accent);
+
+    // Accent variables for Material You / Monet theme integration
+    root.style.setProperty('--accent-tertiary', tokens.accent);
+    root.style.setProperty('--accent-tertiary-subtle', `${tokens.accent}22`);
+    root.style.setProperty('--accent-tertiary-glow', `${tokens.accent}33`);
+
+    // Legacy variables
+    root.style.setProperty('--tint-bg', tokens.bg);
+    root.style.setProperty('--tint-surface', tokens.surface);
+    root.style.setProperty('--tint-secondary', tokens.secondaryBg);
+    root.style.setProperty('--tint-border', tokens.border);
+    root.style.setProperty('--tint-muted', tokens.muted);
+    root.style.setProperty('--tint-base', palette.previewColor);
   }, []);
 
   useEffect(() => {
     db.settings.toArray().then(settings => {
       if (settings.length > 0) {
         if (settings[0].theme) {
-          setThemeState(settings[0].theme as Theme);
+          const loadedTheme = settings[0].theme === ('tinted' as any) ? 'light' : (settings[0].theme as Theme);
+          setThemeState(loadedTheme);
         }
         if (settings[0].tintColor) {
           setTintColorState(settings[0].tintColor);
@@ -159,7 +396,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (storedTint) setTintColorState(storedTint);
     } catch {}
 
-    // Load Material You system tertiary color from Monet engine / system
+    // Load Material You system colors
     fetchMaterialYouColors().then(colors => {
       if (colors && colors.tertiary) {
         setTertiaryColor(colors.tertiary);
@@ -172,7 +409,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const computeIsDark = useCallback((t: Theme): boolean => {
     if (t === 'dark') return true;
-    if (t === 'light' || t === 'tinted') return false;
+    if (t === 'light') return false;
     return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
   }, []);
 
@@ -186,8 +423,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       root.classList.remove('dark');
     }
 
-    const preset = resolveTintPreset(tintColor);
-    applyTintToDOM(preset, theme === 'tinted');
+    const currentPalette = resolveThemePalette(tintColor);
+    applyPaletteToDOM(currentPalette, activeDark);
 
     // Refresh dynamic tertiary color tokens when theme changes
     fetchMaterialYouColors().then(colors => {
@@ -201,6 +438,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setIsDark(sysDark);
         if (sysDark) root.classList.add('dark');
         else root.classList.remove('dark');
+        applyPaletteToDOM(currentPalette, sysDark);
         fetchMaterialYouColors().then(colors => {
           applyMaterialYouToCssVariables(colors, sysDark);
         });
@@ -209,7 +447,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
-  }, [theme, tintColor, computeIsDark, applyTintToDOM]);
+  }, [theme, tintColor, computeIsDark, applyPaletteToDOM]);
 
   const saveThemeToDb = async (newTheme: Theme, newTintColor?: string) => {
     const settings = await db.settings.toArray();
@@ -248,16 +486,10 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       localStorage.setItem('__user_tint_color', color);
     } catch {}
     await saveThemeToDb(theme, color);
-    const preset = resolveTintPreset(color);
-    if (theme === 'tinted') {
-      applyTintToDOM(preset, true);
-    }
+    const palette = resolveThemePalette(color);
+    applyPaletteToDOM(palette, isDark);
   };
 
-  /**
-   * Circular expand (when switching to dark) & Circular contract (when switching to light)
-   * matches Dribbble: https://dribbble.com/shots/23756585-Light-Dark-mode-button-animation
-   */
   const toggleTheme = (eventOrOptions?: React.MouseEvent | ThemeToggleOptions) => {
     const currentIsDark = document.documentElement.classList.contains('dark');
     const willBeDark = !currentIsDark;
@@ -290,10 +522,12 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       } else {
         document.documentElement.classList.remove('dark');
       }
+      const palette = resolveThemePalette(tintColor);
+      applyPaletteToDOM(palette, willBeDark);
       saveThemeToDb(nextTheme);
     };
 
-    runCircularThemeTransition(x, y, endRadius, willBeDark, updateDOM);
+    runCircularThemeTransition(x, y, endRadius, willBeDark, updateDOM, activePalette);
   };
 
   return (
@@ -305,7 +539,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       tertiaryColor,
       tintColor,
       setTintColor,
-      tintPreset: resolveTintPreset(tintColor)
+      palette: activePalette,
+      tintPreset: activePalette
     }}>
       {children}
     </ThemeContext.Provider>
@@ -313,30 +548,26 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 };
 
 /**
- * Robust White-to-Dark & Dark-to-White circular reveal animation
- * Works with 100% reliability across WebView, Android, Chromium, and Desktop:
- * - Switching to Dark: Dark circular ripple expands outward from button center covering entire screen
- * - Switching to Light: Dark overlay contracts back into button center, smoothly unveiling crisp light mode underneath
+ * Circular expand & contract animation with palette support
  */
 function runCircularThemeTransition(
   x: number,
   y: number,
   radius: number,
   willBeDark: boolean,
-  updateDOM: () => void
+  updateDOM: () => void,
+  palette: ThemePalette
 ) {
   if (typeof document === 'undefined') {
     updateDOM();
     return;
   }
 
-  // Remove any preexisting overlay to prevent duplicate layers on rapid taps
   const existingOverlay = document.getElementById('theme-transition-ripple');
   if (existingOverlay) {
     existingOverlay.remove();
   }
 
-  // Create high-performance hardware-accelerated ripple overlay
   const overlay = document.createElement('div');
   overlay.id = 'theme-transition-ripple';
   overlay.style.position = 'fixed';
@@ -346,58 +577,43 @@ function runCircularThemeTransition(
   overlay.style.zIndex = '99999999';
   overlay.style.pointerEvents = 'none';
   overlay.style.willChange = 'clip-path';
-  overlay.style.backgroundColor = '#0A0A0A'; // Dark surface
+  overlay.style.backgroundColor = willBeDark ? (palette?.dark?.bg || '#0A0A0A') : (palette?.light?.bg || '#FFF0F3');
 
   if (willBeDark) {
-    // WHITE TO DARK: TRUE EXPANSION
-    // Dark circle starts at 0px at button origin and expands outward across the viewport
     overlay.style.setProperty('clip-path', `circle(0px at ${x}px ${y}px)`);
     overlay.style.setProperty('-webkit-clip-path', `circle(0px at ${x}px ${y}px)`);
     document.body.appendChild(overlay);
 
-    // Force flush
     void overlay.offsetHeight;
 
-    // 1. Expand outward from button
     requestAnimationFrame(() => {
       overlay.style.transition = 'clip-path 300ms cubic-bezier(0.16, 1, 0.3, 1), -webkit-clip-path 300ms cubic-bezier(0.16, 1, 0.3, 1)';
       overlay.style.setProperty('clip-path', `circle(${radius + 60}px at ${x}px ${y}px)`);
       overlay.style.setProperty('-webkit-clip-path', `circle(${radius + 60}px at ${x}px ${y}px)`);
     });
 
-    // 2. Switch DOM slightly before expansion completes (at 190ms)
-    // By 190ms the dark circle covers >85% of the screen around the button,
-    // so the DOM switch happens completely hidden beneath the dark overlay
     setTimeout(() => {
       updateDOM();
     }, 190);
 
-    // 3. Remove overlay right as the expansion reaches its full boundary
     setTimeout(() => {
       overlay.remove();
     }, 310);
   } else {
-    // DARK TO WHITE: TRUE CONTRACTION
-    // Dark overlay starts at full screen, then contracts inward into the button,
-    // smoothly unveiling the light UI underneath
     overlay.style.setProperty('clip-path', `circle(${radius + 60}px at ${x}px ${y}px)`);
     overlay.style.setProperty('-webkit-clip-path', `circle(${radius + 60}px at ${x}px ${y}px)`);
     document.body.appendChild(overlay);
 
-    // 1. Switch DOM to light mode immediately under the full-screen dark mask
     updateDOM();
 
-    // Force flush
     void overlay.offsetHeight;
 
-    // 2. Contract inward into the button revealing the light page underneath
     requestAnimationFrame(() => {
       overlay.style.transition = 'clip-path 300ms cubic-bezier(0.16, 1, 0.3, 1), -webkit-clip-path 300ms cubic-bezier(0.16, 1, 0.3, 1)';
       overlay.style.setProperty('clip-path', `circle(0px at ${x}px ${y}px)`);
       overlay.style.setProperty('-webkit-clip-path', `circle(0px at ${x}px ${y}px)`);
     });
 
-    // 3. Remove overlay when contraction completes
     setTimeout(() => {
       overlay.remove();
     }, 310);
@@ -409,4 +625,3 @@ export const useTheme = () => {
   if (!context) throw new Error('useTheme must be used within a ThemeProvider');
   return context;
 };
-

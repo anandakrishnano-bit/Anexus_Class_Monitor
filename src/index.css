@@ -35,49 +35,140 @@
     --accent-tertiary-glow: rgba(167, 139, 250, 0.3);
   }
 
-  /* Tinted Color Mode: Soft palette replaces plain whites with selected tint and greys with muted tone */
-  html.tinted-mode {
-    --bg-app: var(--tint-bg, #FFF0F3);
-    --card-surface: var(--tint-surface, #FFFFFF);
-    --card-secondary: var(--tint-secondary, #FDE2E7);
-    --card-tertiary: var(--tint-secondary, #FDE2E7);
-    --border-subtle: var(--tint-border, #FBCFE8);
+  /* ========================================================
+     THEME PALETTE SYSTEM (LIGHT & DARK DUAL MAPPING)
+     - White mode: primary replaces blacks, secondary replaces greys, background is muted
+     - Dark mode: primary replaces whites, secondary replaces light-greys, OLED dark surface
+     ======================================================== */
+  :root {
+    --theme-bg: #FFF0F3;
+    --theme-surface: #FFFFFF;
+    --theme-primary: #9F1239;
+    --theme-primary-text: #FFFFFF;
+    --theme-secondary: #BE185D;
+    --theme-secondary-bg: #FDE2E7;
+    --theme-border: #FBCFE8;
+    --theme-muted: #835360;
+    --theme-accent: #E11D48;
   }
 
-  html.tinted-mode,
-  html.tinted-mode body {
-    background-color: var(--tint-bg, #FFF0F3) !important;
+  .dark {
+    --theme-bg: #0F0A0D;
+    --theme-surface: #1A1216;
+    --theme-primary: #F9CAD2;
+    --theme-primary-text: #881337;
+    --theme-secondary: #FDA4AF;
+    --theme-secondary-bg: #2B151F;
+    --theme-border: #421D2C;
+    --theme-muted: #D4A5B3;
+    --theme-accent: #FB7185;
   }
 
-  html.tinted-mode .bg-\[\#FAFAFA\] {
-    background-color: var(--tint-bg, #FFF0F3) !important;
+  /* --- LIGHT (WHITE) MODE ADAPTATION --- */
+  :root:not(.dark) body,
+  :root:not(.dark) .bg-\[\#FAFAFA\] {
+    background-color: var(--theme-bg, #FFF0F3) !important;
   }
 
-  html.tinted-mode .bg-white {
-    background-color: var(--tint-surface, #FFFFFF) !important;
+  /* Primary colors given to black in white mode */
+  :root:not(.dark) .bg-neutral-900,
+  :root:not(.dark) .bg-black {
+    background-color: var(--theme-primary, #0A0A0A) !important;
+    color: var(--theme-primary-text, #FFFFFF) !important;
+  }
+  :root:not(.dark) .bg-neutral-900 svg,
+  :root:not(.dark) .bg-black svg {
+    color: currentColor;
   }
 
-  html.tinted-mode .bg-neutral-50 {
-    background-color: var(--tint-secondary, #FDE2E7) !important;
+  :root:not(.dark) .text-neutral-900,
+  :root:not(.dark) .text-black {
+    color: var(--theme-primary, #0A0A0A) !important;
   }
 
-  html.tinted-mode .bg-neutral-100 {
-    background-color: var(--tint-secondary, #FDE2E7) !important;
+  :root:not(.dark) .border-neutral-900,
+  :root:not(.dark) .border-black {
+    border-color: var(--theme-primary, #0A0A0A) !important;
   }
 
-  html.tinted-mode .border-neutral-100,
-  html.tinted-mode .border-neutral-200,
-  html.tinted-mode .border-neutral-200\/80 {
-    border-color: var(--tint-border, #FBCFE8) !important;
+  /* Secondary & tertiary colors given to greys in white mode */
+  :root:not(.dark) .bg-neutral-100 {
+    background-color: var(--theme-secondary-bg, #FDE2E7) !important;
   }
 
-  html.tinted-mode .text-neutral-500,
-  html.tinted-mode .text-neutral-400 {
-    color: var(--tint-muted, #835360) !important;
+  :root:not(.dark) .border-neutral-100,
+  :root:not(.dark) .border-neutral-200,
+  :root:not(.dark) .border-neutral-200\/80,
+  :root:not(.dark) .border-neutral-200\/90 {
+    border-color: var(--theme-border, #FBCFE8) !important;
+  }
+
+  :root:not(.dark) .text-neutral-500,
+  :root:not(.dark) .text-neutral-400 {
+    color: var(--theme-muted, #835360) !important;
+  }
+
+  :root:not(.dark) .text-neutral-600,
+  :root:not(.dark) .text-neutral-700 {
+    color: var(--theme-secondary, #BE185D) !important;
+  }
+
+  /* --- DARK MODE ADAPTATION --- */
+  .dark body,
+  .dark .bg-\[\#0A0A0A\],
+  .dark .dark\:bg-\[\#0A0A0A\] {
+    background-color: var(--theme-bg, #0A0A0A) !important;
+  }
+
+  .dark .dark\:bg-\[\#171717\] {
+    background-color: var(--theme-surface, #171717) !important;
+  }
+
+  /* Primary colors given to whites in dark mode */
+  .dark .dark\:bg-white,
+  .dark .dark\:bg-neutral-100 {
+    background-color: var(--theme-primary, #FFFFFF) !important;
+    color: var(--theme-primary-text, #0A0A0A) !important;
+  }
+  .dark .dark\:bg-white svg,
+  .dark .dark\:bg-neutral-100 svg {
+    color: currentColor;
+  }
+
+  .dark .dark\:text-white,
+  .dark .dark\:text-neutral-100 {
+    color: var(--theme-primary, #EDEDED) !important;
+  }
+
+  .dark .dark\:border-white,
+  .dark .dark\:border-neutral-100 {
+    border-color: var(--theme-primary, #EDEDED) !important;
+  }
+
+  /* Secondary & tertiary in dark mode */
+  .dark .dark\:bg-neutral-800,
+  .dark .dark\:bg-\[\#262626\] {
+    background-color: var(--theme-secondary-bg, #262626) !important;
+  }
+
+  .dark .dark\:border-neutral-800,
+  .dark .dark\:border-neutral-700 {
+    border-color: var(--theme-border, #2E2E2E) !important;
+  }
+
+  .dark .dark\:text-neutral-400,
+  .dark .dark\:text-neutral-500 {
+    color: var(--theme-muted, #A1A1A1) !important;
+  }
+
+  .dark .dark\:text-neutral-200,
+  .dark .dark\:text-neutral-300 {
+    color: var(--theme-secondary, #D4D4D8) !important;
   }
 
   body {
-    @apply antialiased font-sans select-none text-neutral-900 dark:text-neutral-100 bg-[#FAFAFA] dark:bg-[#0A0A0A];
+    @apply antialiased font-sans select-none text-neutral-900 dark:text-neutral-100;
+    background-color: var(--theme-bg, #FAFAFA);
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
     overscroll-behavior-y: none;

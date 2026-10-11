@@ -148,3 +148,47 @@ describe('Single Central Firebase Database Architecture', () => {
   });
 });
 
+describe('Application Error Handling Logics', () => {
+  it('should record runtime errors and maintain logs without crashing', async () => {
+    const { logAppError, getAppErrorLogs, clearAppErrorLogs } = await import('../utils/errorHandler');
+    clearAppErrorLogs();
+    expect(getAppErrorLogs().length).toBe(0);
+
+    const testErr = new Error('Test caught error');
+    logAppError(testErr, 'AppTestContext');
+
+    const logs = getAppErrorLogs();
+    expect(logs.length).toBe(1);
+    expect(logs[0].message).toBe('Test caught error');
+    expect(logs[0].source).toBe('AppTestContext');
+    expect(logs[0].timestamp).toBeDefined();
+
+    clearAppErrorLogs();
+    expect(getAppErrorLogs().length).toBe(0);
+  });
+});
+
+describe('Theme Palette Dual-Mode Architecture', () => {
+  it('should resolve theme palettes with both light and dark tokens', async () => {
+    const { resolveThemePalette, THEME_PALETTES } = await import('../context/ThemeContext');
+    expect(THEME_PALETTES.length).toBeGreaterThanOrEqual(6);
+
+    const pinkPalette = resolveThemePalette('pink');
+    expect(pinkPalette.name).toBe('Blush Rose');
+    // White mode: primary replaces black with deep rich tone
+    expect(pinkPalette.light.primary).toBe('#9F1239');
+    expect(pinkPalette.light.bg).toBe('#FFF0F3');
+    // Dark mode: primary replaces white with luminous tone
+    expect(pinkPalette.dark.primary).toBe('#F9CAD2');
+    expect(pinkPalette.dark.primaryText).toBe('#881337');
+  });
+
+  it('should resolve sunshine gold palette accurately', async () => {
+    const { resolveThemePalette } = await import('../context/ThemeContext');
+    const goldPalette = resolveThemePalette('#F9DA41');
+    expect(goldPalette.name).toBe('Sunshine Gold');
+    expect(goldPalette.light.primary).toBe('#78350F');
+    expect(goldPalette.dark.primary).toBe('#F9DA41');
+  });
+});
+

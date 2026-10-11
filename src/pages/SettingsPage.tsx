@@ -1323,12 +1323,11 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenWalkthrough, o
           </button>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
+        <div className="grid grid-cols-3 gap-2.5 pt-1">
           {[
-            { id: 'light' as const, label: 'Light', icon: Sun, desc: 'Clean paper aesthetic' },
-            { id: 'dark' as const, label: 'Dark', icon: Moon, desc: 'OLED pure dark' },
-            { id: 'tinted' as const, label: 'Tinted', icon: Palette, desc: 'Soft colour palette' },
-            { id: 'system' as const, label: 'System', icon: Monitor, desc: 'Follow OS settings' },
+            { id: 'light' as const, label: 'Light', icon: Sun, desc: 'Paper & muted tint' },
+            { id: 'dark' as const, label: 'Dark', icon: Moon, desc: 'OLED with glow' },
+            { id: 'system' as const, label: 'System', icon: Monitor, desc: 'Follow OS mode' },
           ].map((mode) => {
             const Icon = mode.icon;
             const isSelected = theme === mode.id;
@@ -1340,8 +1339,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenWalkthrough, o
                   triggerHaptic('medium');
                   if (mode.id === 'system') {
                     setTheme('system');
-                  } else if (mode.id === 'tinted') {
-                    setTheme('tinted');
                   } else {
                     const shouldChange = (mode.id === 'dark') !== isDark;
                     if (shouldChange) {
@@ -1377,16 +1374,16 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenWalkthrough, o
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-neutral-800 dark:text-neutral-200 flex items-center gap-1.5">
               <Palette className="w-3.5 h-3.5 text-pink-500" />
-              Selected Tint Colour
+              Theme Accent Palette
             </span>
             <span className="text-[10px] text-neutral-400 font-medium">
-              Replaces pure whites & greys
+              Applied in Light & Dark modes
             </span>
           </div>
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-2">
             {TINT_PRESETS.map(preset => {
-              const isCurrent = tintColor.toLowerCase() === preset.baseColor.toLowerCase();
-              const isSelectedInTinted = isCurrent && theme === 'tinted';
+              const isCurrent = tintColor.toLowerCase() === preset.baseColor.toLowerCase() ||
+                                tintColor.toLowerCase() === preset.id.toLowerCase();
               return (
                 <button
                   key={preset.id}
@@ -1394,20 +1391,19 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenWalkthrough, o
                   onClick={() => {
                     triggerHaptic('light');
                     setTintColor(preset.baseColor);
-                    if (theme !== 'tinted') setTheme('tinted');
                   }}
                   className={`p-2.5 rounded-2xl border text-center transition-all flex flex-col items-center gap-1.5 active:scale-95 ${
-                    isSelectedInTinted
-                      ? 'border-neutral-900 dark:border-white shadow-md ring-2 ring-neutral-900/20'
+                    isCurrent
+                      ? 'border-neutral-900 dark:border-white shadow-md ring-2 ring-neutral-900/20 dark:ring-white/20'
                       : 'border-neutral-200 dark:border-neutral-700 hover:border-neutral-400'
                   }`}
                   style={{ backgroundColor: preset.bg }}
                 >
                   <span
                     className="w-5 h-5 rounded-full border border-black/10 shadow-sm shrink-0 flex items-center justify-center"
-                    style={{ backgroundColor: preset.baseColor }}
+                    style={{ backgroundColor: preset.previewColor || preset.baseColor }}
                   >
-                    {isSelectedInTinted && <Check className="w-3 h-3 text-neutral-900" />}
+                    {isCurrent && <Check className="w-3 h-3 text-neutral-900" />}
                   </span>
                   <span className="text-[10px] font-bold text-neutral-800 line-clamp-1">
                     {preset.name}
@@ -1417,7 +1413,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenWalkthrough, o
             })}
           </div>
           <p className="text-[11px] text-neutral-400 leading-tight">
-            Tinted mode replaces bright white surfaces with your chosen soft pastel and greys with matching muted shades.
+            In White mode, your palette styles blacks and key accents with a muted soft background. In Dark mode, it dyes whites and highlights with luminous theme color.
           </p>
         </div>
       </div>
