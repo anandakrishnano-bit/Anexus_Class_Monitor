@@ -20,6 +20,10 @@ dist-ssr
 .env.production.local
 .env.local
 
+# Signing credentials must never be committed
+*.keystore
+*.jks
+
 # Editor & IDE files
 .vscode/*
 !.vscode/extensions.json

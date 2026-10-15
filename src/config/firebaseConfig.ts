@@ -32,13 +32,6 @@ export const CENTRAL_FIREBASE_CONFIG: CentralFirebaseConfig = {
   get appId() { return _ls('__rt_firebase_app_id') || env.VITE_FIREBASE_APP_ID || ''; },
 };
 
-// Standard SHA-256 hashes of default administrative passkeys
-const VALID_ADMIN_HASHES = [
-  "96a81e872158af4e77c80ef02f5094c4d98a18a18cb3bd193530182643c2ea85", // admin123
-  "59fd8497ce43c367f9ae8b365b83518999c6f622b05012907d58972653840f42",
-  "ea228b0e1b7cc1fb6fd2d1ba5d8c6128501afb1867cd7170fcbd2fe9c34665fe"
-];
-
 /**
  * Builds Firestore REST API URLs at runtime using configured project ID
  */
@@ -56,12 +49,6 @@ export async function verifyAdminAccessCode(inputCode: string): Promise<boolean>
   const trimmed = (inputCode || '').trim();
   if (!trimmed) return false;
 
-  // Environment variable override
-  const envPass = env.VITE_ADMIN_PASSKEY;
-  if (envPass && trimmed === envPass.trim()) {
-    return true;
-  }
-
   // Local configured passkey check
   try {
     const customPass = localStorage.getItem('__admin_passkey_override');
@@ -70,23 +57,10 @@ export async function verifyAdminAccessCode(inputCode: string): Promise<boolean>
     }
   } catch {}
 
-  // Cryptographic hash check against default valid passkeys
-  try {
-    if (typeof crypto !== 'undefined' && crypto.subtle) {
-      const encoder = new TextEncoder();
-      const data = encoder.encode(trimmed);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-      const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-      if (VALID_ADMIN_HASHES.includes(hashHex)) {
-        return true;
-      }
-    }
-  } catch {
-    // Non-secure context fallback
-  }
-
-  // Standard development fallback passkey
-  return trimmed === 'admin123';
+  // Do not ship a shared/default administrator passkey in client code.
+  // This check is only a UI gate, not a security boundary. Sensitive operations
+  // must be authorized by a trusted backend before this app is used in production.
+  return false;
 }
 
 /**
