@@ -124,11 +124,9 @@ describe('Single Central Firebase Database Architecture', () => {
     expect(active.apiKey).toBe('custom-key-123');
   });
 
-  it('should verify admin access code without plaintext storage in codebase', async () => {
+  it('should reject built-in/default administrator passkeys', async () => {
     const { verifyAdminAccessCode } = await import('../config/firebaseConfig');
-    expect(await verifyAdminAccessCode('Ananda@2008')).toBe(true);
-    expect(await verifyAdminAccessCode('ananda@2008')).toBe(true);
-    expect(await verifyAdminAccessCode('ANANDA@2008')).toBe(true);
+    expect(await verifyAdminAccessCode('admin123')).toBe(false);
     expect(await verifyAdminAccessCode('wrong-password')).toBe(false);
     expect(await verifyAdminAccessCode('')).toBe(false);
   });
