@@ -16,22 +16,33 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
-    signingConfigs {
-        release {
-            storeFile file('release.keystore')
-            storePassword System.getenv('KEYSTORE_PASSWORD') ?: 'anexus2026'
-            keyAlias System.getenv('KEY_ALIAS') ?: 'anexus-key'
-            keyPassword System.getenv('KEY_PASSWORD') ?: 'anexus2026'
-            v1SigningEnabled true
-            v2SigningEnabled true
+    // Release signing is enabled only when all credentials are supplied securely.
+    // Keep the keystore outside version control and provide its path/passwords via
+    // environment variables in your local build environment or CI secret store.
+    def releaseKeystorePath = System.getenv('KEYSTORE_PATH')
+    def releaseKeystorePassword = System.getenv('KEYSTORE_PASSWORD')
+    def releaseKeyAlias = System.getenv('KEY_ALIAS')
+    def releaseKeyPassword = System.getenv('KEY_PASSWORD')
+    def hasReleaseSigning = releaseKeystorePath && releaseKeystorePassword &&
+            releaseKeyAlias && releaseKeyPassword && file(releaseKeystorePath).isFile()
+
+    if (hasReleaseSigning) {
+        signingConfigs {
+            release {
+                storeFile file(releaseKeystorePath)
+                storePassword releaseKeystorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+                v1SigningEnabled true
+                v2SigningEnabled true
+            }
         }
     }
     buildTypes {
-        debug {
-            signingConfig signingConfigs.release
-        }
         release {
-            signingConfig signingConfigs.release
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
