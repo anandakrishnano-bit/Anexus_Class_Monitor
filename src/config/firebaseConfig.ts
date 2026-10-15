@@ -32,9 +32,6 @@ export const CENTRAL_FIREBASE_CONFIG: CentralFirebaseConfig = {
   get appId() { return _ls('__rt_firebase_app_id') || env.VITE_FIREBASE_APP_ID || ''; },
 };
 
-// No built-in administrator passkeys. Configure a per-installation value in setup.
-const VALID_ADMIN_HASHES: string[] = [];
-
 /**
  * Builds Firestore REST API URLs at runtime using configured project ID
  */
@@ -63,7 +60,7 @@ export async function verifyAdminAccessCode(inputCode: string): Promise<boolean>
   // Do not ship a shared/default administrator passkey in client code.
   // This check is only a UI gate, not a security boundary. Sensitive operations
   // must be authorized by a trusted backend before this app is used in production.
-  return VALID_ADMIN_HASHES.length > 0 && false;
+  return false;
 }
 
 /**
